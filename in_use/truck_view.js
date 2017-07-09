@@ -72,37 +72,41 @@ export default class TruckView extends Component {
   }
 
   render() {
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity onPress = {this.props.onPress} style = {{top: 0, height: MENU_ITEM_HEIGHT, width:50, alignSelf:'center', justifyContent: 'center'}}>
-          <Icon style = {{alignSelf:'center'}} size = {30} name = "arrow-drop-down-circle" color = {GREEN}/>
-        </TouchableOpacity>
-        <View style = {{height: MENU_ITEM_HEIGHT, borderBottomWidth: 2, borderColor: ORANGE, justifyContent: 'center'}}>
-          <Text style = {{fontSize: 40, color: 'white', alignSelf:'center'}}> {this.props.truckName}  </Text>
+    if (this.props.truckName === null) {
+      return null
+    }
+    else
+      return (
+        <View style={styles.container}>
+          <TouchableOpacity onPress = {this.props.onPress} style = {{top: 0, height: MENU_ITEM_HEIGHT, width:50, alignSelf:'center', justifyContent: 'center'}}>
+            <Icon style = {{alignSelf:'center'}} size = {30} name = "arrow-drop-down-circle" color = {GREEN}/>
+          </TouchableOpacity>
+          <View style = {{height: MENU_ITEM_HEIGHT, borderBottomWidth: 2, borderColor: ORANGE, justifyContent: 'center'}}>
+            <Text style = {{fontSize: 40, color: 'white', alignSelf:'center'}}> {this.props.truckName}  </Text>
+          </View>
+          <View style = {{height: 5*MENU_ITEM_HEIGHT, borderColor: ORANGE}}>
+            <ListView
+            dataSource={this.state.dataSource}
+            renderRow = {this.renderRow.bind(this)}
+            />
+          </View>
+          <MapView
+            showsUserLocation
+            style={ styles.map }
+            region={this.props.region}
+            scrollEnabled={false}
+            zoomEnabled={false  }
+          >
+            <MapView.Marker
+              key = {this.props.marker.key}
+              coordinate={this.props.marker.coordinate}
+            />
+          </MapView>
+          <TouchableOpacity style = {{backgroundColor: GREEN, justifyContent: 'center', height: MENU_ITEM_HEIGHT}}>
+            <Text style = {{alignSelf: 'center', color: ORANGE, fontWeight: 'bold'}}> Order! </Text>
+          </TouchableOpacity>
         </View>
-        <View style = {{height: 5*MENU_ITEM_HEIGHT, borderColor: ORANGE}}>
-          <ListView
-          dataSource={this.state.dataSource}
-          renderRow = {this.renderRow.bind(this)}
-          />
-        </View>
-        <MapView
-          showsUserLocation
-          style={ styles.map }
-          region={this.props.region}
-          scrollEnabled={false}
-          zoomEnabled={false  }
-        >
-          <MapView.Marker
-            key = {this.props.marker.key}
-            coordinate={this.props.marker.coordinate}
-          />
-        </MapView>
-        <TouchableOpacity style = {{backgroundColor: GREEN, justifyContent: 'center', height: MENU_ITEM_HEIGHT}}>
-          <Text style = {{alignSelf: 'center', color: ORANGE, fontWeight: 'bold'}}> Order! </Text>
-        </TouchableOpacity>
-      </View>
-    )
+      )
   }
 }
 

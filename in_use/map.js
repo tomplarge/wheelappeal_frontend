@@ -60,40 +60,42 @@ const styles = StyleSheet.create({
 export default class MapPage extends Component {
   constructor(props) {
     super(props);
-    truckData = [
-      {name: 'Burreato', cuisine:'mexican', price:1, waitTime:10,
-        'menu':[{item:'burrito', price: 7, id:0}, {item:'taco', price: 3, id:1},{item:'combo', price: 10, id:2}]},
-      {name: 'The Wok', cuisine:'chinese', price:2, waitTime:5,
-        'menu':[{item:'dumplings', price: 3, id:0}, {item:'lo mein', price: 7, id:1},{item:'combo', price: 10, id:2}]},
-      {name: 'Get Phat Here', cuisine:'american', price:4, waitTime:15,
-        'menu':[{item:'burger', price: 7, id:0}, {item:'fries', price: 3, id:1},{item:'combo', price: 10, id:2}]}
-    ];
-    markers = [
-      {
-        key:0,
-        data: truckData[0],
-        coordinate: {
-          latitude: LATITUDE,
-          longitude: LONGITUDE,
-        },
-      },
-      {
-        key:1,
-        data: truckData[1],
-        coordinate: {
-          latitude: LATITUDE + 0.01,
-          longitude: LONGITUDE - 0.01,
-        },
-      },
-      {
-        key:2,
-        data: truckData[2],
-        coordinate: {
-          latitude: LATITUDE - 0.01,
-          longitude: LONGITUDE - 0.01,
-        },
-      },
-    ];
+    //var truckData;
+    //var markers;
+    // truckData = [
+    //   {name: 'Burreato', cuisine:'mexican', price:1, waitTime:10,
+    //     'menu':[{item:'burrito', price: 7, id:0}, {item:'taco', price: 3, id:1},{item:'combo', price: 10, id:2}]},
+    //   {name: 'The Wok', cuisine:'chinese', price:2, waitTime:5,
+    //     'menu':[{item:'dumplings', price: 3, id:0}, {item:'lo mein', price: 7, id:1},{item:'combo', price: 10, id:2}]},
+    //   {name: 'Get Phat Here', cuisine:'american', price:4, waitTime:15,
+    //     'menu':[{item:'burger', price: 7, id:0}, {item:'fries', price: 3, id:1},{item:'combo', price: 10, id:2}]}
+    // ];
+    // markers = [
+    //   {
+    //     key:0,
+    //     data: truckData[0],
+    //     coordinate: {
+    //       latitude: LATITUDE,
+    //       longitude: LONGITUDE,
+    //     },
+    //   },
+    //   {
+    //     key:1,
+    //     data: truckData[1],
+    //     coordinate: {
+    //       latitude: LATITUDE + 0.01,
+    //       longitude: LONGITUDE - 0.01,
+    //     },
+    //   },
+    //   {
+    //     key:2,
+    //     data: truckData[2],
+    //     coordinate: {
+    //       latitude: LATITUDE - 0.01,
+    //       longitude: LONGITUDE - 0.01,
+    //     },
+    //   },
+    // ];
 
     region = {
       latitude: 37.78825,
@@ -107,7 +109,8 @@ export default class MapPage extends Component {
       truckIndex: null,
       modalOpen,
       region,
-      markers,
+      markers: [],
+      truckData: [],
     }
   }
 
@@ -121,8 +124,15 @@ export default class MapPage extends Component {
 
   componentWillMount(){
     this.setState({modalOpen: false});
-    var request = fetch('wheelappeal.co/v1/menu')
-    console.log(request)
+    return fetch('http://wheelappeal.co:5000/v1/menu', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    })
+    .then((response) => response.json()) // returns a promise
+    .then((responseJSON) => {this.setTruckData(responseJSON)}) // JSON promise handled here
   }
 
   componentDidMount = () => {
@@ -147,6 +157,43 @@ export default class MapPage extends Component {
     });
   }
 
+  setTruckData = (response) => {
+    this.setState({
+      truckData: response
+    })
+    this.setMarkers();
+  }
+
+  setMarkers = () => {
+    this.setState({
+      markers: [
+        {
+          key:0,
+          data: this.state.truckData[0],
+          coordinate: {
+            latitude: LATITUDE,
+            longitude: LONGITUDE,
+          },
+        },
+        {
+          key:1,
+          data: this.state.truckData[1],
+          coordinate: {
+            latitude: LATITUDE + 0.01,
+            longitude: LONGITUDE - 0.01,
+          },
+        },
+        {
+          key:2,
+          data: this.state.truckData[2],
+          coordinate: {
+            latitude: LATITUDE - 0.01,
+            longitude: LONGITUDE - 0.01,
+          },
+        },
+      ]
+    });
+  }
   // there might be a system string operation for multiplication
   priceText(num) {
     str = "";
@@ -164,10 +211,10 @@ export default class MapPage extends Component {
       <View style = {styles.container}>
       <Modal isVisible={this.state.modalOpen} style = {{top: 0}}>
         <TruckView
-          truckName = {this.state.truckIndex === null ? null : truckData[this.state.truckIndex]['name']}
+          truckName = {this.state.truckIndex === null ? null : this.state.truckData[this.state.truckIndex]['name']}
           onPress = {() => {this.setState({modalOpen: false})}}
-          menu = {this.state.truckIndex === null ? null : truckData[this.state.truckIndex]['menu']}
-          marker = {markers[this.state.truckIndex]}
+          menu = {this.state.truckIndex === null ? null : this.state.truckData[this.state.truckIndex]['menu']}
+          marker = {this.state.truckIndex === null ? null : markers[this.state.truckIndex]}
           region = {this.state.region} //temporary
         />
       </Modal>
@@ -247,7 +294,7 @@ export default class MapPage extends Component {
             <TouchableOpacity
               onPress={() => {this.setState({modalOpen: true, truckIndex: item.key})}}
               style = {styles.previewBlock}>
-                <Text style = {{alignSelf: 'center', fontSize: 20}}> {truckData[item.key].name} </Text>
+                <Text style = {{alignSelf: 'center', fontSize: 20}}> {this.state.truckData[item.key].name} </Text>
                 <Text style = {{left: 0, bottom: 0, fontSize: 10}}> Press for info </Text>
             </TouchableOpacity>
           }
