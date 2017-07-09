@@ -35,8 +35,6 @@ export default class TruckView extends Component {
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
     const dataSource = ds.cloneWithRows(this.generateRows(this.props.menu));
 
-
-    console.log('made it here')
     this.state = {
       dataSource: dataSource,
     }
@@ -46,7 +44,8 @@ export default class TruckView extends Component {
     var dataObj = [];
     for (var i = 0; i < MENU_ITEMS_NUM; i++) {
       if (menu != undefined) {
-        rowObj = {text: menu[i].item, price: menu[i].price, id: menu[i].id, selected: this.pressData[i]};
+        // lost menu.id
+        rowObj = {text: menu[i].item, price: menu[i].price, id: i, selected: this.pressData[i]};
         dataObj.push(rowObj);
       }
     }
@@ -61,7 +60,6 @@ export default class TruckView extends Component {
 
   }
   renderRow(row) {
-    console.log(this.pressData)
     var background = this.pressData[row.id] ? GREEN : 'white';
     return (
       <TouchableHighlight onPress = {() => {this.handlePress(this.pressData, row)}} style = {{height: MENU_ITEM_HEIGHT, backgroundColor:background, borderBottomWidth: 2, borderColor: 'black'}}>
