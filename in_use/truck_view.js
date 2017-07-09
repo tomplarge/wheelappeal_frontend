@@ -45,8 +45,10 @@ export default class TruckView extends Component {
   generateRows(menu) {
     var dataObj = [];
     for (var i = 0; i < MENU_ITEMS_NUM; i++) {
-      rowObj = {text: menu[i].item, price: menu[i].price, id: menu[i].id, selected: this.pressData[i]};
-      dataObj.push(rowObj);
+      if (menu != undefined) {
+        rowObj = {text: menu[i].item, price: menu[i].price, id: menu[i].id, selected: this.pressData[i]};
+        dataObj.push(rowObj);
+      }
     }
     return dataObj;
   }

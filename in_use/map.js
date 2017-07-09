@@ -124,7 +124,7 @@ export default class MapPage extends Component {
 
   componentWillMount(){
     this.setState({modalOpen: false});
-    return fetch('http://wheelappeal.co:5000/v1/menu', {
+    fetch('http://wheelappeal.co:5000/v1/trucks', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -133,6 +133,21 @@ export default class MapPage extends Component {
     })
     .then((response) => response.json()) // returns a promise
     .then((responseJSON) => {this.setTruckData(responseJSON)}) // JSON promise handled here
+
+    // this is algorithmically slow - change when we get real data
+    .then(() => {
+      this.state.truckData.map((truckdata, i) => {
+        fetch('http://wheelappeal.co:5000/v1/menu?truckname='+truckdata.name.toString(), {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        })
+        .then((response) => response.json())
+        .then((responseJSON) => {this.setMenu(i, responseJSON)})
+      })
+    })
   }
 
   componentDidMount = () => {
@@ -158,6 +173,7 @@ export default class MapPage extends Component {
   }
 
   setTruckData = (response) => {
+    console.log('Setting Truck Data')
     this.setState({
       truckData: response
     })
@@ -165,6 +181,7 @@ export default class MapPage extends Component {
   }
 
   setMarkers = () => {
+    console.log('Setting Markers')
     this.setState({
       markers: [
         {
@@ -194,6 +211,12 @@ export default class MapPage extends Component {
       ]
     });
   }
+
+  setMenu = (idx, menu) => {
+    console.log('Setting Menu for Truck ' + idx)
+    this.state.truckData[idx].menu = menu
+  }
+
   // there might be a system string operation for multiplication
   priceText(num) {
     str = "";
@@ -202,6 +225,7 @@ export default class MapPage extends Component {
     }
     return str;
   }
+
   render() {
     const {
       markers,
@@ -215,7 +239,7 @@ export default class MapPage extends Component {
           onPress = {() => {this.setState({modalOpen: false})}}
           menu = {this.state.truckIndex === null ? null : this.state.truckData[this.state.truckIndex]['menu']}
           marker = {this.state.truckIndex === null ? null : markers[this.state.truckIndex]}
-          region = {this.state.region} //temporary
+          region = {this.state.region}
         />
       </Modal>
         <SearchBar
