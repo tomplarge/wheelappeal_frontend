@@ -4,6 +4,7 @@ import TruckView from './truck_view';
 import SearchBar from 'react-native-searchbar';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import Modal from 'react-native-modal';
+
 //import PreviewPanController from './PreviewPanController'
 import {
     Text,
@@ -15,8 +16,8 @@ import {
     TouchableOpacity
 } from "react-native";
 
-const GREEN = '#4fc29f'
-const ORANGE = '#ffc33d'
+const GREEN = '#00d38e'
+const ORANGE = '#ffb123'
 const LATITUDE = 37.78825;
 const LONGITUDE = -122.4324;
 
@@ -28,25 +29,24 @@ const previewBlockSpacing = 10;
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
     flex: 1
   },
   map: {
     backgroundColor: 'transparent',
-    ...StyleSheet.absoluteFillObject,
+    flex: 1
   },
 
   previewBlockContainer: {
-    flex: 1,
+    //flex: 1,
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    position: 'absolute',
-    top: screen.height - previewBlockHeight,
+    position: 'relative',
+    //top: screen.height - previewBlockHeight,
   },
 
   previewBlock: {
       flex: 1,
-      justifyContent: 'center',
+      //justifyContent: 'center',
       width: previewBlockWidth,
       height: previewBlockHeight,
       marginHorizontal: previewBlockSpacing,
@@ -54,6 +54,7 @@ const styles = StyleSheet.create({
       overflow: 'hidden',
       borderRadius: 3,
       borderColor: '#000',
+      borderWidth: 0,
   },
 });
 
@@ -108,13 +109,21 @@ export default class MapPage extends Component {
     this.state = {
       truckIndex: null,
       modalOpen,
-      region,
+      region: {
+        latitude: 37.78825,
+        longitude: -122.4324,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      },
       markers: [],
       truckData: [],
+      results: [],
+      searchBarVisible: false,
     }
   }
 
   onPress = (marker) => {
+    console.log('Pressed')
     this.list.scrollToIndex({index: marker.key})
   }
 
@@ -135,6 +144,7 @@ export default class MapPage extends Component {
     .then((responseJSON) => {this.setTruckData(responseJSON)}) // JSON promise handled here
 
     // this is algorithmically slow - change when we get real data
+    // Also, might be handling these promises in a weird way.
     .then(() => {
       this.state.truckData.map((truckdata, i) => {
         fetch('http://wheelappeal.co:5000/v1/menu?truckname='+truckdata.name.toString(), {
@@ -167,8 +177,9 @@ export default class MapPage extends Component {
             longitudeDelta: 0.0922
           },
         });
-
-        this.map.region = this.state.region
+        if (this.map) {
+          this.map.region = this.state.region;
+        }
     });
   }
 
@@ -226,6 +237,10 @@ export default class MapPage extends Component {
     return str;
   }
 
+  handleSearchResults = (results) => {
+    this.setState({results: results})
+  }
+
   render() {
     const {
       markers,
@@ -244,7 +259,10 @@ export default class MapPage extends Component {
       </Modal>
         <SearchBar
           ref={(ref) => this.searchbar = ref}
-          placeholder='Search Food Trucks'
+          placeholder = {'Search Food Trucks'}
+          data = {this.state.truckData}
+          handleResults = {this.handleSearchResults}
+          onHide = {() => {this.setState({searchBarVisible: false})}}
         />
         <MapView
           ref={map => this.map = map}
@@ -261,52 +279,28 @@ export default class MapPage extends Component {
               onPress = {() => {this.onPress(marker)}}>
               <MapView.Callout>
                 <View>
-                  <Text style = {{fontSize: 15}}> {marker.data.name} </Text>
-                  <Text style = {{fontSize: 10}}> Cuisine: {marker.data.cuisine}</Text>
-                  <Text style = {{fontSize: 10}}> Price: {this.priceText(marker.data.price)} </Text>
+                  <Text style = {{fontSize: 15, color: ORANGE}}> {marker.data.name} </Text>
+                  <Text style = {{fontSize: 10, color: ORANGE}}> Cuisine: {marker.data.cuisine}</Text>
+                  <Text style = {{fontSize: 10, color: ORANGE}}> Price: {this.priceText(marker.data.price)} </Text>
                 </View>
               </MapView.Callout>
             </MapView.Marker>
             ))}
         </MapView>
-        <View
-          style = {{
-            top: 20,
-            left: screen.width-50,
-            shadowOffset: {
-              width: 0,
-              height: 3
-            },
-            shadowRadius: 5,
-            shadowOpacity: 1.0
-          }}
-        >
-          <Icon.Button size={35} style={{height: 50}} name="search" backgroundColor="#3b5998"
-            onPress={() => {this.searchbar.show()}}
-          />
-        </View>
-        <View
-          style = {{
-            top: 40,
-            left: screen.width-50,
-            shadowOffset: {
-              width: 0,
-              height: 3
-            },
-            shadowRadius: 5,
-            shadowOpacity: 1.0
-          }}
-        >
-          <Icon.Button size={35} style={{height: 50}} name="my-location" backgroundColor="#3b5998"n
-            onPress={() => {
-              this.setCurrentLocation()
-            }}
-          />
-        </View>
+        <TouchableOpacity style={{top: 20, left: 10, position: 'absolute', height: 50, width: 50, borderRadius: 10, backgroundColor:GREEN, justifyContent: 'center', alignItems: 'center'}}
+          onPress={() => {this.setState({searchBarVisible: true}); this.searchbar.show()}}>
+          <Icon name = "search" size = {30} color = {'white'}/>
+        </TouchableOpacity>
+        <TouchableOpacity style={{top: 20, right: 10, position: 'absolute', height: 50, width: 50, borderRadius: 10, backgroundColor:GREEN, justifyContent: 'center', alignItems: 'center'}}
+          onPress={() => {
+            this.setCurrentLocation()
+          }}>
+          <Icon name = "my-location" size = {30} color = {'white'}/>
+        </TouchableOpacity>
         <FlatList
           ref={list => this.list = list}
           style = {{
-            top: screen.height - 100,
+            bottom: 20,
             position: 'absolute',
           }}
           horizontal={true}
@@ -318,8 +312,8 @@ export default class MapPage extends Component {
             <TouchableOpacity
               onPress={() => {this.setState({modalOpen: true, truckIndex: item.key})}}
               style = {styles.previewBlock}>
-                <Text style = {{alignSelf: 'center', fontSize: 20}}> {this.state.truckData[item.key].name} </Text>
-                <Text style = {{left: 0, bottom: 0, fontSize: 10}}> Press for info </Text>
+                  <Icon style = {{alignSelf:'center', top: 0, transform: [{ rotate: '180deg'}], color: 'white'}} size = {20} name = "arrow-drop-down-circle"/>
+                  <Text style = {{alignSelf: 'center', fontSize: 20, color: 'white', fontWeight: 'bold'}}> {this.state.truckData[item.key].name} </Text>
             </TouchableOpacity>
           }
         />

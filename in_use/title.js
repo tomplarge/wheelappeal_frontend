@@ -13,8 +13,8 @@ import {
   PixelRatio
 } from 'react-native';
 
-const GREEN = '#4fc29f'
-const ORANGE = '#ffc33d'
+const GREEN = '#00d38e'
+const ORANGE = '#ffb123'
 const timer = require('react-native-timer');
 
 import Button from 'react-native-animated-button';

@@ -7,7 +7,8 @@ import {
   Dimensions,
   TouchableOpacity,
   ListView,
-  TouchableHighlight
+  TouchableHighlight,
+  Image
 } from 'react-native';
 
 const screen = Dimensions.get('window');
@@ -17,10 +18,11 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import MapView from 'react-native-maps';
 //TODO: Fix .bind(this)
 
-const GREEN = '#4fc29f'
-const ORANGE = '#ffc33d'
+const GREEN = '#00d38e'
+const ORANGE = '#ffb123'
 const MENU_ITEMS_NUM = 3
 const MENU_ITEM_HEIGHT = 50
+const food_truck_img = require('./food-truck-img.jpg')
 
 export default class TruckView extends Component {
   constructor(props) {
@@ -84,24 +86,15 @@ export default class TruckView extends Component {
           <View style = {{height: MENU_ITEM_HEIGHT, borderBottomWidth: 2, borderColor: ORANGE, justifyContent: 'center'}}>
             <Text style = {{fontSize: 40, color: 'white', alignSelf:'center'}}> {this.props.truckName}  </Text>
           </View>
+          <View style = {{height: screen.height - (9*MENU_ITEM_HEIGHT),justifyContent:'center',alignItems:'center', backgroundColor: 'red',overflow: 'hidden'}}>
+            <Image style = {styles.image} source = {food_truck_img} />
+          </View>
           <View style = {{height: 5*MENU_ITEM_HEIGHT, borderColor: ORANGE}}>
             <ListView
             dataSource={this.state.dataSource}
             renderRow = {this.renderRow.bind(this)}
             />
           </View>
-          <MapView
-            showsUserLocation
-            style={ styles.map }
-            region={this.props.region}
-            scrollEnabled={false}
-            zoomEnabled={false  }
-          >
-            <MapView.Marker
-              key = {this.props.marker.key}
-              coordinate={this.props.marker.coordinate}
-            />
-          </MapView>
           <TouchableOpacity style = {{backgroundColor: GREEN, justifyContent: 'center', height: MENU_ITEM_HEIGHT}}>
             <Text style = {{alignSelf: 'center', color: ORANGE, fontWeight: 'bold'}}> Order! </Text>
           </TouchableOpacity>
@@ -113,7 +106,7 @@ export default class TruckView extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor:'transparent',
+    backgroundColor:ORANGE,
     borderRadius: 5,
     borderWidth: 2,
     borderColor: ORANGE
@@ -125,15 +118,34 @@ const styles = StyleSheet.create({
   titleContainer: {
     height: screen.height/8,
     width: screen.width,
-    backgroundColor: 'red'
   },
   menuContainer: {
     height: screen.height/2,
     width: screen.width,
     backgroundColor: 'blue'
   },
-  map: {
-    backgroundColor: 'transparent',
-    height: screen.height - (9*MENU_ITEM_HEIGHT)
+  image: {
+    //height: screen.height - (9*MENU_ITEM_HEIGHT),
+    //width: screen.width - 20,
+    flex: 1,
+    alignSelf:'center',
+    resizeMode: ('contain','cover'),
+    position: 'relative',
+    overflow:'hidden'
   },
 });
+
+/* Reserves
+<MapView
+  showsUserLocation
+  style={ styles.map }
+  region={this.props.region}
+  scrollEnabled={false}
+  zoomEnabled={false  }
+>
+  <MapView.Marker
+    key = {this.props.marker.key}
+    coordinate={this.props.marker.coordinate}
+  />
+</MapView>
+*/
