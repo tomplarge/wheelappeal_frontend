@@ -61,51 +61,16 @@ const styles = StyleSheet.create({
 export default class MapPage extends Component {
   constructor(props) {
     super(props);
-    //var truckData;
-    //var markers;
-    // truckData = [
-    //   {name: 'Burreato', cuisine:'mexican', price:1, waitTime:10,
-    //     'menu':[{item:'burrito', price: 7, id:0}, {item:'taco', price: 3, id:1},{item:'combo', price: 10, id:2}]},
-    //   {name: 'The Wok', cuisine:'chinese', price:2, waitTime:5,
-    //     'menu':[{item:'dumplings', price: 3, id:0}, {item:'lo mein', price: 7, id:1},{item:'combo', price: 10, id:2}]},
-    //   {name: 'Get Phat Here', cuisine:'american', price:4, waitTime:15,
-    //     'menu':[{item:'burger', price: 7, id:0}, {item:'fries', price: 3, id:1},{item:'combo', price: 10, id:2}]}
-    // ];
-    // markers = [
-    //   {
-    //     key:0,
-    //     data: truckData[0],
-    //     coordinate: {
-    //       latitude: LATITUDE,
-    //       longitude: LONGITUDE,
-    //     },
-    //   },
-    //   {
-    //     key:1,
-    //     data: truckData[1],
-    //     coordinate: {
-    //       latitude: LATITUDE + 0.01,
-    //       longitude: LONGITUDE - 0.01,
-    //     },
-    //   },
-    //   {
-    //     key:2,
-    //     data: truckData[2],
-    //     coordinate: {
-    //       latitude: LATITUDE - 0.01,
-    //       longitude: LONGITUDE - 0.01,
-    //     },
-    //   },
-    // ];
 
     region = {
-      latitude: 37.78825,
-      longitude: -122.4324,
+      latitude: LATITUDE,
+      longitude: LONGITUDE,
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
     };
 
     modalOpen = false
+
     this.state = {
       truckIndex: null,
       modalOpen,
@@ -122,16 +87,11 @@ export default class MapPage extends Component {
     }
   }
 
-  onPress = (marker) => {
-    console.log('Pressed')
-    this.list.scrollToIndex({index: marker.key})
-  }
-
   onRegionChange = (reg) => {
     this.setState({region: reg});
   }
 
-  componentWillMount(){
+  componentWillMount() {
     this.setState({modalOpen: false});
     fetch('http://wheelappeal.co:5000/v1/trucks', {
       method: 'GET',
@@ -245,7 +205,6 @@ export default class MapPage extends Component {
     const {
       markers,
     } = this.state;
-
     return (
       <View style = {styles.container}>
       <Modal isVisible={this.state.modalOpen} style = {{top: 0}}>
@@ -273,10 +232,11 @@ export default class MapPage extends Component {
         >
           {this.state.markers.map(marker => (
             <MapView.Marker
+              ref = {'marker'+marker.key}
               key = {marker.key}
               coordinate={marker.coordinate}
               title={marker.title}
-              onPress = {() => {this.onPress(marker)}}>
+              onPress = {() => {this.list.scrollToIndex({index: marker.key})}}>
               <MapView.Callout>
                 <View>
                   <Text style = {{fontSize: 15, color: ORANGE}}> {marker.data.name} </Text>
@@ -310,7 +270,8 @@ export default class MapPage extends Component {
           )}
           renderItem={({item}) =>
             <TouchableOpacity
-              onPress={() => {this.setState({modalOpen: true, truckIndex: item.key})}}
+              //onPress={() => {this.setState({modalOpen: true, truckIndex: item.key})}}
+              onPress = {() => {this.map.animateToRegion(item.coordinate, 2); this.refs['marker'+item.key].showCallout()}}
               style = {styles.previewBlock}>
                   <Icon style = {{alignSelf:'center', top: 0, transform: [{ rotate: '180deg'}], color: 'white'}} size = {20} name = "arrow-drop-down-circle"/>
                   <Text style = {{alignSelf: 'center', fontSize: 20, color: 'white', fontWeight: 'bold'}}> {this.state.truckData[item.key].name} </Text>
