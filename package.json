@@ -12,6 +12,8 @@
 		"react": "16.0.0-alpha.12",
 		"react-native": "0.45.1",
 		"react-native-animated-button": "0.0.6",
+		"react-native-callout": "0.0.8",
+		"react-native-easy-grid-view": "^0.1.1",
 		"react-native-maps": "^0.15.2",
 		"react-native-modal": "^2.4.0",
 		"react-native-router-flux": "^3.40.1",

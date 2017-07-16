@@ -3,7 +3,10 @@ import React, {Component} from "react";
 import TruckView from './truck_view';
 import SearchBar from 'react-native-searchbar';
 import Icon from "react-native-vector-icons/MaterialIcons";
+import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 import Modal from 'react-native-modal';
+import Callout from "react-native-callout";
+import GridView from "react-native-easy-grid-view";
 
 //import PreviewPanController from './PreviewPanController'
 import {
@@ -20,8 +23,12 @@ const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
 const LATITUDE = 37.78825;
 const LONGITUDE = -122.4324;
-
 const screen = Dimensions.get('window');
+const NUM_FILTERS = 3;
+const FILTER_WIDTH = (screen.width - 50)/3 - 10;
+
+const CUISINES = ['mexican', 'chinese', 'american']; //temporary - use api for this
+const CUISINE_FILTER_ITEM_HEIGHT = 30;
 
 const previewBlockHeight = 75;
 const previewBlockWidth = screen.width*7/10;
@@ -62,21 +69,44 @@ export default class MapPage extends Component {
   constructor(props) {
     super(props);
 
-    region = {
-      latitude: LATITUDE,
-      longitude: LONGITUDE,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
-    };
+    this.filterButtonPos = null;
 
-    modalOpen = false
+    cuisineDefaultSelection = {}
+    for (var i = 0; i < CUISINES.length; i++) {
+      cuisineDefaultSelection[CUISINES[i]] = false;
+    }
+
+    filters = [
+      {
+        filter: 'cuisine',
+        key: 0,
+        selection: cuisineDefaultSelection,
+        open: false,
+      },
+      {
+        filter: 'price',
+        key: 1,
+        selection: [],
+        open: false,
+      },
+      {
+        filter: 'waitTime',
+        key: 2,
+        selection: null,
+        open: false,
+      },
+    ];
+
+    cuisineDs = new GridView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
+    cuisineFilterData = cuisineDs.cloneWithCells(this.generateCuisineCells(filters), 1);
 
     this.state = {
       truckIndex: null,
-      modalOpen,
+      modalOpen: false,
+      filterOpen: false,
       region: {
-        latitude: 37.78825,
-        longitude: -122.4324,
+        latitude: LATITUDE,
+        longitude: LONGITUDE,
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       },
@@ -84,6 +114,9 @@ export default class MapPage extends Component {
       truckData: [],
       results: [],
       searchBarVisible: false,
+      filters: filters,
+      cuisineDs: cuisineDs,
+      cuisineFilterData: cuisineFilterData,
     }
   }
 
@@ -201,6 +234,76 @@ export default class MapPage extends Component {
     this.setState({results: results})
   }
 
+  generateCuisineCells(filters) {
+    var dataObj = [];
+    for (var i = 0; i < CUISINES.length; i++) {
+      rowObj = {text: CUISINES[i], id: i, selected: filters[0].selection[CUISINES[i]]};
+      dataObj.push(rowObj);
+    }
+    return dataObj;
+  }
+
+  renderCuisineCell(cell) {
+      return (
+        <TouchableOpacity style={{borderRadius: 2, borderColor: GREEN, borderWidth: 1, height:CUISINE_FILTER_ITEM_HEIGHT, justifyContent:'center',alignItems:'center', backgroundColor: cell.selected ? GREEN : 'white'}}
+          onPress = {() => {let {filters} = this.state; filters[0].selection[cell.text] = !filters[0].selection[cell.text]; this.setState({cuisineFilterData: this.state.cuisineDs.cloneWithCells(this.generateCuisineCells(filters), 1)})}}>
+          <Text> {cell.text} </Text>
+        </TouchableOpacity>
+      )
+  }
+
+
+  renderFilterWindow() {
+    //console.log(this.filterButton.getItemLayout())
+    if (this.state.filterOpen == true && this.filterButtonPos != null) {
+      return (
+        <View style = {{flex: 1, height: 150, justifyContent:'space-between', backgroundColor: 'transparent', top: this.filterButtonPos.y - 110, position: 'absolute', width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, right: 10, flexDirection: 'row'}}
+          pointerEvents = 'box-none'
+        >
+          {this.state.filters.map((filter, i) => (
+            <View key = {i} style = {{backgroundColor: 'white', height: filter.open ? 110 : 0, width: FILTER_WIDTH, top: 0, borderRadius: 3}}>
+              <GridView dataSource={this.state.cuisineFilterData}
+                        spacing={2}
+                        style={{padding:0}}
+                        renderCell={this.renderCuisineCell.bind(this)}
+              />
+            </View>
+          ))}
+          <View style = {{
+            width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10,
+            height: this.filterButtonPos.height,
+            position: 'absolute',
+            left: 0,
+            // top: this.filterButtonPos.y,
+            bottom: 0,
+            borderRadius: 3,
+            flex: 1,
+            backgroundColor: 'transparent',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+          }}
+          >
+            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'blue', justifyContent: 'center', alignItems: 'center'}}
+              onPress={() => {let {filters} = this.state; filters[0].open = !filters[0].open; this.setState({filters: filters})}}>
+              <Text> Cuisine </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'green', justifyContent: 'center', alignItems: 'center'}}
+            onPress={() => {let {filters} = this.state; filters[1].open = !filters[1].open; this.setState({filters: filters})}}>
+              <Text> Price </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'yellow', justifyContent: 'center', alignItems: 'center'}}
+              onPress={() => {let {filters} = this.state; filters[2].open = !filters[2].open; this.setState({filters: filters})}}>
+              <Text> Wait Time</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+    else {
+      return;
+    }
+  }
+
   render() {
     const {
       markers,
@@ -247,6 +350,7 @@ export default class MapPage extends Component {
             </MapView.Marker>
             ))}
         </MapView>
+        {this.renderFilterWindow()}
         <TouchableOpacity style={{top: 20, left: 10, position: 'absolute', height: 50, width: 50, borderRadius: 10, backgroundColor:GREEN, justifyContent: 'center', alignItems: 'center'}}
           onPress={() => {this.setState({searchBarVisible: true}); this.searchbar.show()}}>
           <Icon name = "search" size = {30} color = {'white'}/>
@@ -256,6 +360,15 @@ export default class MapPage extends Component {
             this.setCurrentLocation()
           }}>
           <Icon name = "my-location" size = {30} color = {'white'}/>
+        </TouchableOpacity>
+        <TouchableOpacity style = {{left: 10, bottom: 20+previewBlockHeight+10, position:'absolute', height: 35, width: 35, borderRadius: 10, backgroundColor: GREEN, justifyContent: 'center', alignItems: 'center'}}
+          ref = {ref => this.filterButton = ref} onPress = {() => {this.setState({filterOpen: !this.state.filterOpen})}}
+          onLayout={(event) => {
+            var {x, y, width, height} = event.nativeEvent.layout;
+            this.filterButtonPos = {x,y,width,height};
+          }}
+        >
+          <CommunityIcon name = "filter-outline" size = {20} color = {'white'}/>
         </TouchableOpacity>
         <FlatList
           ref={list => this.list = list}
@@ -270,7 +383,7 @@ export default class MapPage extends Component {
           )}
           renderItem={({item}) =>
             <TouchableOpacity
-              //onPress={() => {this.setState({modalOpen: true, truckIndex: item.key})}}
+              onPress={() => {this.setState({modalOpen: true, truckIndex: item.key})}}
               onPress = {() => {this.map.animateToRegion(item.coordinate, 2); this.refs['marker'+item.key].showCallout()}}
               style = {styles.previewBlock}>
                   <Icon style = {{alignSelf:'center', top: 0, transform: [{ rotate: '180deg'}], color: 'white'}} size = {20} name = "arrow-drop-down-circle"/>
