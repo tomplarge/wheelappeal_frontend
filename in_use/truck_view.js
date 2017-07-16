@@ -54,17 +54,17 @@ export default class TruckView extends Component {
     return dataObj;
   }
 
-  handlePress(pressData, row) {
+  handlePress(row) {
     this.pressData[row.id] = !this.pressData[row.id];
     this.setState({dataSource: this.state.dataSource.cloneWithRows(
       this.generateRows(this.props.menu)
     )});
-
   }
+
   renderRow(row) {
     var background = this.pressData[row.id] ? GREEN : 'white';
     return (
-      <TouchableHighlight onPress = {() => {this.handlePress(this.pressData, row)}} style = {{height: MENU_ITEM_HEIGHT, backgroundColor:background, borderBottomWidth: 2, borderColor: 'black'}}>
+      <TouchableHighlight onPress = {() => {this.handlePress(row)}} style = {{height: MENU_ITEM_HEIGHT, backgroundColor:background, borderBottomWidth: 2, borderColor: 'black'}}>
         <View style = {{flex: 1, flexDirection:'row'}}>
           <Text style = {{alignSelf: 'center', left: 0}}> {row.text} </Text>
           <Text style = {{alignSelf: 'center', right: 0, position:'absolute'}}> {'Price: $'+row.price} </Text>
