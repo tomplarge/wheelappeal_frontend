@@ -314,17 +314,17 @@ export default class MapPage extends Component {
             justifyContent: 'space-between',
           }}
           >
-            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'blue', justifyContent: 'center', alignItems: 'center'}}
+            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
               onPress={() => {let {filters} = this.state; filters['cuisine'].open = !filters['cuisine'].open; this.setState({filters: filters})}}>
-              <Text> Cuisine </Text>
+              <Text style = {{color: GREEN}}> Cuisine </Text>
             </TouchableOpacity>
-            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'green', justifyContent: 'center', alignItems: 'center'}}
+            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
             onPress={() => {let {filters} = this.state; filters['price'].open = !filters['price'].open; this.setState({filters: filters})}}>
-              <Text> Price </Text>
+              <Text style = {{color: GREEN}}> Price </Text>
             </TouchableOpacity>
-            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'yellow', justifyContent: 'center', alignItems: 'center'}}
+            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
               onPress={() => {let {filters} = this.state; filters['waitTime'].open = !filters['waitTime'].open; this.setState({filters: filters})}}>
-              <Text> Wait Time</Text>
+              <Text style = {{color: GREEN}}> Wait Time</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -373,9 +373,9 @@ export default class MapPage extends Component {
               onPress = {() => {this.list.scrollToIndex({index: marker.key})}}>
               <MapView.Callout>
                 <View>
-                  <Text style = {{fontSize: 15, color: ORANGE}}> {marker.data.name} </Text>
-                  <Text style = {{fontSize: 10, color: ORANGE}}> Cuisine: {marker.data.cuisine}</Text>
-                  <Text style = {{fontSize: 10, color: ORANGE}}> Price: {this.priceText(marker.data.price)} </Text>
+                  <Text style = {{fontSize: 15, color: GREEN}}> {marker.data.name} </Text>
+                  <Text style = {{fontSize: 10, color: GREEN}}> Cuisine: {marker.data.cuisine}</Text>
+                  <Text style = {{fontSize: 10, color: GREEN}}> Price: {this.priceText(marker.data.price)} </Text>
                 </View>
               </MapView.Callout>
             </MapView.Marker>
