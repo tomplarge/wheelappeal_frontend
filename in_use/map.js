@@ -265,12 +265,12 @@ export default class MapPage extends Component {
   }
 
   renderFilterRow(i, row) {
-    return (
-      <TouchableOpacity style={{borderRadius: 2, borderColor: GREEN, borderWidth: 1, height:FILTER_ITEM_HEIGHT, justifyContent:'center',alignItems:'center', backgroundColor: row.selected ? GREEN : 'white'}}
-        onPress = {() => {this.handleFilterPress(row, i)}}>
-        <Text> {row.text} </Text>
-      </TouchableOpacity>
-    )
+      return (
+        <TouchableOpacity style={{borderRadius: 1, borderBottomWidth: 2, borderColor: GREEN, height: FILTER_ITEM_HEIGHT, justifyContent:'center',alignItems:'center', backgroundColor: row.selected ? GREEN : 'white'}}
+          onPress = {() => {this.handleFilterPress(row, i)}}>
+          <Text> {row.text} </Text>
+        </TouchableOpacity>
+      )
   }
 
   handleFilterPress(row, i) {
@@ -289,7 +289,7 @@ export default class MapPage extends Component {
     //console.log(this.filterButton.getItemLayout())
     if (this.state.filterOpen == true && this.filterButtonPos != null) {
       return (
-        <View style = {{flex: 1, height: 150, justifyContent:'space-between', backgroundColor: 'transparent', top: this.filterButtonPos.y - 110, position: 'absolute', width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, right: 10, flexDirection: 'row'}}
+        <View style = {{flex: 1, height: 150, justifyContent:'space-between', backgroundColor: 'transparent', bottom: 10+previewBlockHeight, position: 'absolute', width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, right: 10, flexDirection: 'row'}}
           pointerEvents = 'box-none'
         >
           {Object.keys(this.state.filters).map((filter, i) => (
@@ -392,7 +392,7 @@ export default class MapPage extends Component {
           }}>
           <Icon name = "my-location" size = {30} color = {'white'}/>
         </TouchableOpacity>
-        <TouchableOpacity style = {{left: 10, bottom: 6+previewBlockHeight+10, position:'absolute', height: 35, width: 35, borderRadius: 10, backgroundColor: GREEN, justifyContent: 'center', alignItems: 'center'}}
+        <TouchableOpacity style = {{left: 10, bottom: 10+previewBlockHeight, position:'absolute', height: 35, width: 35, borderRadius: 10, backgroundColor: GREEN, justifyContent: 'center', alignItems: 'center'}}
           ref = {ref => this.filterButton = ref} onPress = {() => {this.setState({filterOpen: !this.state.filterOpen})}}
           onLayout={(event) => {
             var {x, y, width, height} = event.nativeEvent.layout;
