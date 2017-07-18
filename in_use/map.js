@@ -129,6 +129,7 @@ export default class MapPage extends Component {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       },
+      constMarkers: [],
       markers: [],
       truckData: [],
       results: [],
@@ -231,7 +232,33 @@ export default class MapPage extends Component {
             longitude: LONGITUDE - 0.01,
           },
         },
-      ]
+      ],
+      constMarkers: [
+        {
+          key:0,
+          data: this.state.truckData[0],
+          coordinate: {
+            latitude: LATITUDE,
+            longitude: LONGITUDE,
+          },
+        },
+        {
+          key:1,
+          data: this.state.truckData[1],
+          coordinate: {
+            latitude: LATITUDE + 0.01,
+            longitude: LONGITUDE - 0.01,
+          },
+        },
+        {
+          key:2,
+          data: this.state.truckData[2],
+          coordinate: {
+            latitude: LATITUDE - 0.01,
+            longitude: LONGITUDE - 0.01,
+          },
+        },
+      ],
     });
   }
 
@@ -277,14 +304,41 @@ export default class MapPage extends Component {
     let {filters, filterDataSource} = this.state;
     // gotta be a better way
     filterName = Object.keys(filters)[i];
-    console.log('filterName:',filterName)
     filter = filters[filterName];
     filter.selected[row.text] = !filter.selected[row.text];
-    console.log('filterDataSource:',this.state.filterDataSource[filterName])
     filterDataSource[filterName] = this.state.filterDataSource[filterName].cloneWithRows(this.generateFilterRows(filters, filterName));
     this.setState({filters: filters, filterDataSource: filterDataSource});
+    this.makeFilterHappen(filterName);
   }
 
+  onFilterSelection = (filterName) => {
+    let {filters} = this.state;
+    filters[filterName].open = !filters[filterName].open;
+    this.setState({filters: filters});
+  }
+
+  //need input? we don't want to search over every filter every time
+  // filterName: 'cuisine', 'price', etc.
+  makeFilterHappen = (filterName) => {
+    let {filters, constMarkers} = this.state;
+    filterObj = filters[filterName]; //the object associated with cuisine, price, etc.
+    selectedFilters = Object.keys(filterObj.selected).filter(el => filterObj.selected[el] == true)
+    // this is linear just for testing - make it not
+    // TODO: improve this!!
+    var tempMarkers = []
+    for (var i = 0; i < constMarkers.length; i++) {
+      // also not a good way to check these things. Just for testing
+      // TODO: improve this!!
+      console.log('i:',i)
+      if (selectedFilters.find(selectedFilter => constMarkers[i].data.cuisine == selectedFilter) == undefined) {
+        console.log('inside')
+        tempMarkers.push(constMarkers[i]);
+      }
+    }
+    console.log(tempMarkers)
+    this.setState({markers: tempMarkers});
+    //console.log(this.state.markers)
+  }
   renderFilterWindow() {
     //console.log(this.filterButton.getItemLayout())
     if (this.state.filterOpen == true && this.filterButtonPos != null) {
@@ -315,15 +369,15 @@ export default class MapPage extends Component {
           }}
           >
             <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
-              onPress={() => {let {filters} = this.state; filters['cuisine'].open = !filters['cuisine'].open; this.setState({filters: filters})}}>
+              onPress={() => {this.onFilterSelection('cuisine')}}>
               <Text style = {{color: GREEN}}> Cuisine </Text>
             </TouchableOpacity>
             <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
-            onPress={() => {let {filters} = this.state; filters['price'].open = !filters['price'].open; this.setState({filters: filters})}}>
+            onPress={() => {this.onFilterSelection('price')}}>
               <Text style = {{color: GREEN}}> Price </Text>
             </TouchableOpacity>
             <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
-              onPress={() => {let {filters} = this.state; filters['waitTime'].open = !filters['waitTime'].open; this.setState({filters: filters})}}>
+              onPress={() => {this.onFilterSelection('waitTime')}}>
               <Text style = {{color: GREEN}}> Wait Time</Text>
             </TouchableOpacity>
           </View>
@@ -408,7 +462,7 @@ export default class MapPage extends Component {
             position: 'absolute',
           }}
           horizontal={true}
-          data={markers}
+          data={this.state.markers}
           getItemLayout = {(data,index) => (
             {length: previewBlockWidth, offset: (previewBlockWidth+2*previewBlockSpacing)*index, index}
           )}
