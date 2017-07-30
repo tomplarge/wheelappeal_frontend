@@ -85,7 +85,7 @@ export default class TruckView extends Component {
       modalOpen: false,
     })
   }
-  
+
   renderMenu() {
     return (
       <View>

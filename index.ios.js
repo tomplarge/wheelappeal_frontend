@@ -14,17 +14,16 @@ import { Router, Scene } from 'react-native-router-flux';
 
 import MapPage from './in_use/map'
 import TitlePage from './in_use/title'
-import OrderPage from './in_use/order_page'
-import TruckView from './in_use/truck_view'
+import OrderPage from './in_use/orderPage'
+import TruckView from './in_use/truckView'
 
 const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
 class wheelappeal extends Component {
   render() {
     return(
-      <TruckView
-        truckName = {'Truck Name'}
-        menu = {[{item:'Item 1',price:1},{item:'Item 2',price:2},{item:'Item 3',price:3}]}
+      <OrderPage
+        cart = {[1,2,3]}
       />
     )
   }
@@ -33,6 +32,11 @@ class wheelappeal extends Component {
 AppRegistry.registerComponent('wheelappeal', () => wheelappeal)
 
 /* Reserves
+<TruckView
+  truckName = {'Truck Name'}
+  menu = {[{item:'Item 1',price:1},{item:'Item 2',price:2},{item:'Item 3',price:3}]}
+/>
+
 render() {
   return (
     <Router>

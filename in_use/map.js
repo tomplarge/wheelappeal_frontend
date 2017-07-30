@@ -1,6 +1,6 @@
 import MapView from 'react-native-maps';
 import React, {Component} from "react";
-import TruckView from './truck_view';
+import TruckView from './truckView';
 import SearchBar from 'react-native-searchbar';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
