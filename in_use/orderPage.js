@@ -93,9 +93,9 @@ const GREEN2 = '#00b789'
         <Modal isVisible={this.modalOpen}>
           {this.renderItemModal()}
         </Modal>
-        <LinearGradient colors = {[GREEN2, GREEN]} style = {styles.topTabBar}>
+        <View style = {styles.topTabBar}>
           <Text style = {styles.topTabBarText}>Your Order</Text>
-        </LinearGradient>
+        </View>
         <ScrollView style = {styles.container}>
           <View style = {styles.titleContainer}>
             <Text style = {styles.titleText}>Truck Name</Text>
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   editButton: {
-
+    
   },
   bottomTabBar: {
     backgroundColor: GREEN,
