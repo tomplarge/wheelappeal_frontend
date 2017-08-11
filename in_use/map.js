@@ -6,6 +6,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 import Modal from 'react-native-modal';
 import Callout from "react-native-callout";
+import {Actions} from 'react-native-router-flux';
 
 //import PreviewPanController from './PreviewPanController'
 import {
@@ -35,41 +36,9 @@ const FILTER_OPTIONS = {
 }
 
 const FILTER_ITEM_HEIGHT = 30;
-
 const previewBlockHeight = 75;
 const previewBlockWidth = screen.width*7/10;
 const previewBlockSpacing = 10;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  },
-  map: {
-    backgroundColor: 'transparent',
-    flex: 1
-  },
-
-  previewBlockContainer: {
-    //flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    position: 'relative',
-    //top: screen.height - previewBlockHeight,
-  },
-
-  previewBlock: {
-      flex: 1,
-      //justifyContent: 'center',
-      width: previewBlockWidth,
-      height: previewBlockHeight,
-      marginHorizontal: previewBlockSpacing,
-      backgroundColor: GREEN,
-      overflow: 'hidden',
-      borderRadius: 3,
-      borderColor: '#000',
-      borderWidth: 0,
-  },
-});
 
 export default class MapPage extends Component {
   constructor(props) {
@@ -112,12 +81,10 @@ export default class MapPage extends Component {
 
     filterDs = {}
     filterDataSource = {}
-    console.log(Object.keys(filters))
     Object.keys(filters).forEach((filterName) => {
       filterDs[filterName] = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
       filterDataSource[filterName] = filterDs[filterName].cloneWithRows(this.generateFilterRows(filters, filterName));
     })
-    console.log(filterDataSource)
 
     this.state = {
       truckIndex: null,
@@ -143,7 +110,9 @@ export default class MapPage extends Component {
   onRegionChange = (reg) => {
     this.setState({region: reg});
   }
-
+  componentDidUpdate() {
+    console.log(this.state.truckIndex)
+  }
   componentWillMount() {
     this.setState({modalOpen: false});
     fetch('http://wheelappeal.co:5000/v1/trucks', {
@@ -276,6 +245,12 @@ export default class MapPage extends Component {
     return str;
   }
 
+  // move this to some other utils?
+  toTitleCase(str) {
+    str = str.replace(/_/g, ' ');
+    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+  }
+
   handleSearchResults = (results) => {
     this.setState({results: results})
   }
@@ -293,7 +268,7 @@ export default class MapPage extends Component {
 
   renderFilterRow(i, row) {
       return (
-        <TouchableOpacity style={{borderRadius: 1, borderBottomWidth: 2, borderColor: GREEN, height: FILTER_ITEM_HEIGHT, justifyContent:'center',alignItems:'center', backgroundColor: row.selected ? GREEN : 'white'}}
+        <TouchableOpacity style={[styles.filterRow, {backgroundColor: row.selected ? GREEN : 'white'}]}
           onPress = {() => {this.handleFilterPress(row, i)}}>
           <Text> {row.text} </Text>
         </TouchableOpacity>
@@ -317,7 +292,7 @@ export default class MapPage extends Component {
     this.setState({filters: filters});
   }
 
-  //need input? we don't want to search over every filter every time
+  // need input? we don't want to search over every filter every time
   // filterName: 'cuisine', 'price', etc.
   makeFilterHappen = (filterName) => {
     let {filters, constMarkers} = this.state;
@@ -329,56 +304,41 @@ export default class MapPage extends Component {
     for (var i = 0; i < constMarkers.length; i++) {
       // also not a good way to check these things. Just for testing
       // TODO: improve this!!
-      console.log('i:',i)
       if (selectedFilters.find(selectedFilter => constMarkers[i].data.cuisine == selectedFilter) == undefined) {
-        console.log('inside')
         tempMarkers.push(constMarkers[i]);
       }
     }
-    console.log(tempMarkers)
     this.setState({markers: tempMarkers});
     //console.log(this.state.markers)
   }
+
   renderFilterWindow() {
-    //console.log(this.filterButton.getItemLayout())
     if (this.state.filterOpen == true && this.filterButtonPos != null) {
       return (
-        <View style = {{flex: 1, height: 150, justifyContent:'space-between', backgroundColor: 'transparent', bottom: 10+previewBlockHeight, position: 'absolute', width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, right: 10, flexDirection: 'row'}}
+        <View style = {[styles.filtersContainer, {width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10,}]}
           pointerEvents = 'box-none'
         >
           {Object.keys(this.state.filters).map((filter, i) => (
-            <View key = {i} style = {{backgroundColor: 'white', height: this.state.filters[filter].open ? 110 : 0, width: FILTER_WIDTH, top: 0, borderRadius: 3}}>
+            <View key = {i} style = {[styles.filtersListContainer, {height: this.state.filters[filter].open ? 110 : 0,}]}>
               <ListView
                 dataSource = {this.state.filterDataSource[filter]}
                 renderRow = {this.renderFilterRow.bind(this, i)}
               />
             </View>
           ))}
-          <View style = {{
-            width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10,
-            height: this.filterButtonPos.height,
-            position: 'absolute',
-            left: 0,
-            // top: this.filterButtonPos.y,
-            bottom: 0,
-            borderRadius: 3,
-            flex: 1,
-            backgroundColor: 'transparent',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-          }}
+          <View style = {[styles.filterTypeContainer, {width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, height: this.filterButtonPos.height,}]}
           >
-            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
+            <TouchableOpacity style = {styles.filterTypeSelect}
               onPress={() => {this.onFilterSelection('cuisine')}}>
-              <Text style = {{color: GREEN}}> Cuisine </Text>
+              <Text style = {styles.filterTypeText}>Cuisine</Text>
             </TouchableOpacity>
-            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
+            <TouchableOpacity style = {styles.filterTypeSelect}
             onPress={() => {this.onFilterSelection('price')}}>
-              <Text style = {{color: GREEN}}> Price </Text>
+              <Text style = {styles.filterTypeText}>Price</Text>
             </TouchableOpacity>
-            <TouchableOpacity style = {{borderRadius: 3, width: FILTER_WIDTH, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center'}}
+            <TouchableOpacity style = {styles.filterTypeSelect}
               onPress={() => {this.onFilterSelection('waitTime')}}>
-              <Text style = {{color: GREEN}}> Wait Time</Text>
+              <Text style = {styles.filterTypeText}>Wait Time</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -389,21 +349,31 @@ export default class MapPage extends Component {
     }
   }
 
+  openTruckView = (item) => {
+    Actions.truck({
+      truckName: this.state.truckData[item.key]['name'],
+      menu: this.state.truckData[item.key]['menu'],
+      marker: this.state.markers[item.key],
+      region: this.state.region,
+      onCheckoutPress: this.onCheckoutPress,
+    });
+  }
+
+  onCheckoutPress(itemCounts, totalPrice) {
+    Actions.pop();
+    Actions.order({
+      itemCounts: itemCounts,
+      totalPrice: totalPrice,
+    });
+  }
+
   render() {
     const {
       markers,
     } = this.state;
+
     return (
       <View style = {styles.container}>
-      <Modal isVisible={this.state.modalOpen} style = {{top: 0}}>
-        <TruckView
-          truckName = {this.state.truckIndex === null ? null : this.state.truckData[this.state.truckIndex]['name']}
-          onPress = {() => {this.setState({modalOpen: false})}}
-          menu = {this.state.truckIndex === null ? null : this.state.truckData[this.state.truckIndex]['menu']}
-          marker = {this.state.truckIndex === null ? null : markers[this.state.truckIndex]}
-          region = {this.state.region}
-        />
-      </Modal>
         <SearchBar
           ref={(ref) => this.searchbar = ref}
           placeholder = {'Search Food Trucks'}
@@ -414,7 +384,7 @@ export default class MapPage extends Component {
         <MapView
           ref={map => this.map = map}
           showsUserLocation
-          style={ styles.map }
+          style={styles.map}
           region={this.state.region}
           onRegionChange={(reg) => {this.onRegionChange(reg)}}
         >
@@ -427,26 +397,26 @@ export default class MapPage extends Component {
               onPress = {() => {this.list.scrollToIndex({index: marker.key})}}>
               <MapView.Callout>
                 <View>
-                  <Text style = {{fontSize: 15, color: GREEN}}> {marker.data.name} </Text>
-                  <Text style = {{fontSize: 10, color: GREEN}}> Cuisine: {marker.data.cuisine}</Text>
-                  <Text style = {{fontSize: 10, color: GREEN}}> Price: {this.priceText(marker.data.price)} </Text>
+                  <Text style = {styles.pinCalloutText}>{this.toTitleCase(marker.data.name)}</Text>
+                  <Text style = {styles.pinCalloutText}>Cuisine: {marker.data.cuisine}</Text>
+                  <Text style = {styles.pinCalloutText}>Price: {this.priceText(marker.data.price)}</Text>
                 </View>
               </MapView.Callout>
             </MapView.Marker>
             ))}
         </MapView>
         {this.renderFilterWindow()}
-        <TouchableOpacity style={{top: 20, left: 10, position: 'absolute', height: 50, width: 50, borderRadius: 10, backgroundColor:GREEN, justifyContent: 'center', alignItems: 'center'}}
+        <TouchableOpacity style={styles.searchButton}
           onPress={() => {this.setState({searchBarVisible: true}); this.searchbar.show()}}>
           <Icon name = "search" size = {30} color = {'white'}/>
         </TouchableOpacity>
-        <TouchableOpacity style={{top: 20, right: 10, position: 'absolute', height: 50, width: 50, borderRadius: 10, backgroundColor:GREEN, justifyContent: 'center', alignItems: 'center'}}
+        <TouchableOpacity style={styles.locationButton}
           onPress={() => {
             this.setCurrentLocation()
           }}>
           <Icon name = "my-location" size = {30} color = {'white'}/>
         </TouchableOpacity>
-        <TouchableOpacity style = {{left: 10, bottom: 10+previewBlockHeight, position:'absolute', height: 35, width: 35, borderRadius: 10, backgroundColor: GREEN, justifyContent: 'center', alignItems: 'center'}}
+        <TouchableOpacity style = {styles.filterButton}
           ref = {ref => this.filterButton = ref} onPress = {() => {this.setState({filterOpen: !this.state.filterOpen})}}
           onLayout={(event) => {
             var {x, y, width, height} = event.nativeEvent.layout;
@@ -457,10 +427,7 @@ export default class MapPage extends Component {
         </TouchableOpacity>
         <FlatList
           ref={list => this.list = list}
-          style = {{
-            bottom: 6,
-            position: 'absolute',
-          }}
+          style = {styles.truckScroll}
           horizontal={true}
           data={this.state.markers}
           getItemLayout = {(data,index) => (
@@ -468,11 +435,9 @@ export default class MapPage extends Component {
           )}
           renderItem={({item}) =>
             <TouchableOpacity
-              onPress={() => {this.setState({modalOpen: true, truckIndex: item.key})}}
-              //onPress = {() => {this.map.animateToRegion(item.coordinate, 2); this.refs['marker'+item.key].showCallout()}}
+              onPress={() => this.openTruckView(item)}
               style = {styles.previewBlock}>
-                  <Icon style = {{alignSelf:'center', top: 0, transform: [{ rotate: '180deg'}], color: 'white'}} size = {20} name = "arrow-drop-down-circle"/>
-                  <Text style = {{alignSelf: 'center', fontSize: 20, color: 'white', fontWeight: 'bold'}}> {this.state.truckData[item.key].name} </Text>
+                <Text style = {styles.previewBlockText}>{this.toTitleCase(this.state.truckData[item.key].name)}</Text>
             </TouchableOpacity>
           }
         />
@@ -480,3 +445,127 @@ export default class MapPage extends Component {
     );
   }
 }
+
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  map: {
+    backgroundColor: 'transparent',
+    flex: 1,
+  },
+  previewBlockContainer: {
+    //flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    position: 'relative',
+    //top: screen.height - previewBlockHeight,
+  },
+  previewBlock: {
+      flex: 1,
+      width: previewBlockWidth,
+      height: previewBlockHeight,
+      marginHorizontal: previewBlockSpacing,
+      backgroundColor: GREEN,
+      overflow: 'hidden',
+      borderRadius: 5,
+      borderColor: '#000',
+      borderWidth: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+  },
+  previewBlockText: {
+    fontSize: 20,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  truckScroll: {
+    bottom: 6,
+    position: 'absolute',
+  },
+  filterButton: {
+    left: 10,
+    bottom: 10+previewBlockHeight,
+    position:'absolute',
+    height: 35,
+    width: 35,
+    borderRadius: 10,
+    backgroundColor: GREEN,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationButton: {
+    top: 20,
+    right: 10,
+    position: 'absolute',
+    height: 50,
+    width: 50,
+    borderRadius: 10,
+    backgroundColor:GREEN,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchButton: {
+    top: 20,
+    left: 10,
+    position: 'absolute',
+    height: 50,
+    width: 50,
+    borderRadius: 10,
+    backgroundColor:GREEN,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pinCalloutText: {
+    fontSize: 15,
+    color: GREEN,
+  },
+  filterTypeSelect: {
+    borderRadius: 3,
+    width: FILTER_WIDTH,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterSelect: {
+
+  },
+  filterTypeText: {
+    color: GREEN,
+  },
+  filterTypeContainer: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    borderRadius: 3,
+    flex: 1,
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  filtersListContainer: {
+    backgroundColor: 'white',
+    width: FILTER_WIDTH,
+    top: 0,
+    borderRadius: 3,
+  },
+  filtersContainer: {
+    flex: 1,
+    height: 150,
+    justifyContent:'space-between',
+    backgroundColor: 'transparent',
+    bottom: 10+previewBlockHeight,
+    position: 'absolute',
+    right: 10,
+    flexDirection: 'row',
+  },
+  filterRow: {
+    borderRadius: 1,
+    borderBottomWidth: 2,
+    borderColor: GREEN,
+    height: FILTER_ITEM_HEIGHT,
+    justifyContent:'center',
+    alignItems:'center',
+  },
+});

@@ -8,14 +8,51 @@ import {
 } from 'react-native';
 
 import Icon from "react-native-vector-icons/MaterialIcons";
+import {observer} from 'mobx-react';
+import {observable} from "mobx"
 
 const screen = Dimensions.get('window');
 const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
 
-export default class MenuItemModal extends Component {
+@observer export default class MenuItemModal extends Component {
+  @observable itemCounts;
+  @observable currentCount;
   constructor(props) {
+
     super(props);
+    this.itemCounts = this.props.itemCounts;
+    this.currentItem = this.props.itemName;
+    this.currentCount = this.itemCounts[this.currentItem];
+    if (this.currentCount == 0) {
+      this.currentCount = 1;
+      this.itemCounts[this.currentItem] = this.currentCount;
+    }
+
+    // we're using the invariant that one and only one of onUpdateCartPress or onAddToCartPress are passed as props
+    this.exitOption = this.props.onUpdateCartPress ? "Update Cart" : "Add to Cart"
+  }
+
+  // move this to some other utils?
+  toTitleCase(str) {
+    str = str.replace(/_/g, ' ');
+    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+  }
+
+  updateItemCount(changeType) {
+    var s;
+    if (changeType == 'increment') {
+      this.currentCount += 1;
+      sign = s;
+    }
+    else {
+
+      if (this.currentCount > 0) {
+        this.currentCount -= 1;
+        sign = -s;
+      }
+    }
+    this.itemCounts[this.currentItem] = this.currentCount;
   }
 
   render() {
@@ -24,18 +61,18 @@ export default class MenuItemModal extends Component {
         <TouchableHighlight onPress = {() => {this.props.onExitPress()}} style = {styles.exitButton}>
           <Icon name = "add" size = {30} style = {styles.exitIcon}/>
         </TouchableHighlight>
-        <Text style = {styles.titleText}> {this.props.itemName} </Text>
-        <Text style = {styles.subtitleText}> Price </Text>
-        <Text style = {styles.subtitleText}> Description </Text>
-        <TouchableHighlight onPress = {() => {this.props.onAddToCartPress()}} style = {styles.addToCartButton}>
-          <Text style = {styles.addToCartText}> Add to Cart </Text>
+        <Text style = {styles.titleText}>{this.toTitleCase(this.props.itemName)}</Text>
+        <Text style = {styles.subtitleText}>Price</Text>
+        <Text style = {styles.subtitleText}>Description</Text>
+        <TouchableHighlight onPress = {() => {this.props.onUpdateCartPress ? this.props.onUpdateCartPress() : this.props.onAddToCartPress()}} style = {styles.addToCartButton}>
+          <Text style = {styles.addToCartText}>{this.exitOption}</Text>
         </TouchableHighlight>
         <View style = {styles.countContainer}>
-          <TouchableHighlight onPress = {() => {console.log('Decrease')}} style = {styles.countButton}>
+          <TouchableHighlight onPress = {() => {this.updateItemCount('decrement')}} style = {styles.countButton}>
             <Icon name = "remove" color = {GREEN} size = {30} />
           </TouchableHighlight>
-          <Text style = {styles.countText}> 1 </Text>
-          <TouchableHighlight onPress = {() => {console.log('Increase')}} style = {styles.countButton}>
+          <Text style = {styles.countText}>{this.currentCount}</Text>
+          <TouchableHighlight onPress = {() => {this.updateItemCount('increment')}} style = {styles.countButton}>
             <Icon name = "add" color = {GREEN} size = {30}/>
           </TouchableHighlight>
         </View>

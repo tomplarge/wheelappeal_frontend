@@ -5,47 +5,105 @@ import {
   Text,
   View,
   ScrollView,
-  TouchableHighlight
+  TouchableHighlight,
+  Dimensions
 } from 'react-native';
 
+import LinearGradient from 'react-native-linear-gradient';
+import Modal from 'react-native-modal';
+import {Actions} from 'react-native-router-flux';
+import {observer} from 'mobx-react';
+import {observable} from "mobx"
 
+import MenuItemModal from './menuItemModal'
+const screen = Dimensions.get('window');
 const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
+const GREEN2 = '#00b789'
 
-export default class OrderPage extends Component {
+@observer export default class OrderPage extends Component {
+  @observable itemPressed = null;
+  @observable totalPrice;
+  @observable itemCounts;
+  @observable modalOpen = false;
+
   constructor(props) {
     super(props);
+    this.itemCounts = this.props.itemCounts
+    this.totalPrice = this.props.totalPrice
   }
 
-  renderCart() {
+  // move this to some other utils?
+  toTitleCase(str) {
+    str = str.replace(/_/g, ' ');
+    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+  }
+
+  renderCart = () => {
     return (
       <View>
-        {this.props.cart.map((item, i) => (
-          <View key = {i} style = {styles.cartItemContainer}>
-            <Text style = {styles.cartItemText}> Count </Text>
-            <Text style = {styles.cartItemText}> Item </Text>
-            <Text style = {styles.cartItemText}> Price </Text>
-          </View>
+        {Object.keys(this.props.itemCounts).map((key, i) => (
+          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed=key; this.modalOpen = true;}} style = {styles.menuItem}>
+            <View>
+              <Text style = {styles.menuItemName}>{this.toTitleCase(key)}</Text>
+              <Text style = {styles.menuItemCount}>{this.itemCounts[key]}</Text>
+            </View>
+          </TouchableHighlight>
         ))}
+        <View style = {styles.menuItem}>
+          <Text style = {[styles.menuItemName,{color: GREEN}]}>Total: </Text>
+          <Text style = {styles.menuItemCount}>${this.totalPrice}</Text>
+        </View>
       </View>
     )
+  }
+
+  onExitPress = () => {
+    this.modalOpen = false;
+    this.itemPressed = null;
+  }
+
+  onUpdateCartPress = () => {
+    this.numItems += this.itemCounts[this.itemPressed]
+    this.totalPrice += 3;
+    this.modalOpen = false;
+    this.itemPressed = null;
+  }
+
+  renderItemModal = () => {
+    if (this.itemPressed == null) {
+      return (<View/>);
+    }
+    else {
+      item = this.itemPressed;
+      return (
+        <MenuItemModal
+          itemCounts = {this.itemCounts}
+          itemName = {this.itemPressed}
+          onExitPress = {this.onExitPress}
+          onUpdateCartPress = {this.onUpdateCartPress}
+        />
+      );
+    }
   }
 
   render(){
     return(
       <View style = {styles.container}>
-        <View style = {styles.topTabBar}>
-          <Text style = {styles.topTabBarText}> Your Order </Text>
-        </View>
+        <Modal isVisible={this.modalOpen}>
+          {this.renderItemModal()}
+        </Modal>
+        <LinearGradient colors = {[GREEN2, GREEN]} style = {styles.topTabBar}>
+          <Text style = {styles.topTabBarText}>Your Order</Text>
+        </LinearGradient>
         <ScrollView style = {styles.container}>
           <View style = {styles.titleContainer}>
-            <Text style = {styles.titleText}> Truck Name </Text>
-            <Text style = {styles.subtitleText}> Wait Time: </Text>
+            <Text style = {styles.titleText}>Truck Name</Text>
           </View>
           {this.renderCart()}
         </ScrollView>
-        <TouchableHighlight style = {styles.bottomTabBar}>
-          <Text style = {styles.bottomTabBarText}> Order </Text>
+        <TouchableHighlight style = {styles.bottomTabBar} onPress = {() => {Actions.map()}}>
+          <Text style = {styles.bottomTabBarText}>Order</Text>
         </TouchableHighlight>
       </View>
     )
@@ -64,6 +122,7 @@ const styles = StyleSheet.create({
   topTabBarText: {
     fontSize: 20,
     alignSelf:'center',
+    backgroundColor: 'transparent',
   },
   editButton: {
 
@@ -76,6 +135,7 @@ const styles = StyleSheet.create({
   bottomTabBarText: {
     fontSize: 20,
     alignSelf: 'center',
+    backgroundColor: 'transparent',
   },
   cartItemContainer: {
     flex: 1,
@@ -88,6 +148,7 @@ const styles = StyleSheet.create({
   },
   cartItemText: {
     fontSize: 20,
+    backgroundColor: 'transparent',
   },
   titleContainer: {
     borderBottomWidth: 1,
@@ -95,8 +156,27 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: 40,
+    backgroundColor: 'transparent',
   },
   subtitleText: {
     fontSize: 20,
+  },
+  menuItem: {
+    width: screen.width,
+    height: 50,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'grey',
+  },
+  menuItemName: {
+    position: 'absolute',
+    fontSize: 15,
+    left: 5,
+  },
+  menuItemCount: {
+    color: GREEN,
+    position: 'absolute',
+    fontSize: 15,
+    right: 5,
   },
 })

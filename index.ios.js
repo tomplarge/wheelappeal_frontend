@@ -20,11 +20,19 @@ import TruckView from './in_use/truckView'
 const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
 class wheelappeal extends Component {
+  componentWillMount() {
+    // gather data
+  }
+
   render() {
-    return(
-      <OrderPage
-        cart = {[1,2,3]}
-      />
+    return (
+      <Router>
+        <Scene key = 'root'>
+          <Scene key = 'map' component = {MapPage} hideNavBar initial/>
+          <Scene key = 'order' component = {OrderPage}/>
+          <Scene key = 'truck' component = {TruckView} {...this.props} direction = 'vertical' panHandlers={null}/>
+        </Scene>
+      </Router>
     )
   }
 }
@@ -36,17 +44,6 @@ AppRegistry.registerComponent('wheelappeal', () => wheelappeal)
   truckName = {'Truck Name'}
   menu = {[{item:'Item 1',price:1},{item:'Item 2',price:2},{item:'Item 3',price:3}]}
 />
-
-render() {
-  return (
-    <Router>
-      <Scene key = 'root'>
-        <Scene key = 'title'  component = {(props) => <TitlePage {...props}/>} hideNavBar/>
-        <Scene key = 'mappage'  component = {(props) => <MapPage {...props}/>} initial animationStyle={this.animationStyle} hideNavBar/>
-      </Scene>
-    </Router>
-  )
-}
 
 render() {
   return (
