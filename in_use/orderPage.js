@@ -23,14 +23,12 @@ const GREEN2 = '#00b789'
 
 @observer export default class OrderPage extends Component {
   @observable itemPressed = null;
-  @observable totalPrice;
-  @observable itemCounts;
   @observable modalOpen = false;
+  @observable cart;
 
   constructor(props) {
     super(props);
-    this.itemCounts = this.props.itemCounts
-    this.totalPrice = this.props.totalPrice
+    this.cart = this.props.cart;
   }
 
   // move this to some other utils?
@@ -42,17 +40,17 @@ const GREEN2 = '#00b789'
   renderCart = () => {
     return (
       <View>
-        {Object.keys(this.props.itemCounts).map((key, i) => (
-          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed=key; this.modalOpen = true;}} style = {styles.menuItem}>
+        {Object.keys(this.cart.itemCounts).filter((key) => {return this.cart.itemCounts[key].count > 0}).map((key, i) => (
+          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed = this.cart.itemCounts[key].item; this.modalOpen = true;}} style = {styles.menuItem}>
             <View>
               <Text style = {styles.menuItemName}>{this.toTitleCase(key)}</Text>
-              <Text style = {styles.menuItemCount}>{this.itemCounts[key]}</Text>
+              <Text style = {styles.menuItemCount}>{this.cart.itemCounts[key].count}</Text>
             </View>
           </TouchableHighlight>
         ))}
         <View style = {styles.menuItem}>
           <Text style = {[styles.menuItemName,{color: GREEN}]}>Total: </Text>
-          <Text style = {styles.menuItemCount}>${this.totalPrice}</Text>
+          <Text style = {styles.menuItemCount}>${this.cart.totalPrice}</Text>
         </View>
       </View>
     )
@@ -63,9 +61,12 @@ const GREEN2 = '#00b789'
     this.itemPressed = null;
   }
 
-  onUpdateCartPress = () => {
-    this.numItems += this.itemCounts[this.itemPressed]
-    this.totalPrice += 3;
+  onUpdateCartPress = (newCount) => {
+    // itemPressed is still the item that was selected
+    this.cart.numItems += newCount;
+    this.cart.totalPrice -= this.cart.itemCounts[this.itemPressed.item].count * this.itemPressed.price;
+    this.cart.itemCounts[this.itemPressed.item].count = newCount;
+    this.cart.totalPrice += this.cart.itemCounts[this.itemPressed.item].count * this.itemPressed.price;
     this.modalOpen = false;
     this.itemPressed = null;
   }
@@ -75,11 +76,10 @@ const GREEN2 = '#00b789'
       return (<View/>);
     }
     else {
-      item = this.itemPressed;
       return (
         <MenuItemModal
-          itemCounts = {this.itemCounts}
-          itemName = {this.itemPressed}
+          itemCount = {this.cart.itemCounts[this.itemPressed.item].count}
+          itemPressed = {this.itemPressed}
           onExitPress = {this.onExitPress}
           onUpdateCartPress = {this.onUpdateCartPress}
         />

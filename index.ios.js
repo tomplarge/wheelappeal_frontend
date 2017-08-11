@@ -29,7 +29,7 @@ class wheelappeal extends Component {
       <Router>
         <Scene key = 'root'>
           <Scene key = 'map' component = {MapPage} hideNavBar initial/>
-          <Scene key = 'order' component = {OrderPage}/>
+          <Scene key = 'order' component = {OrderPage} {...this.props}/>
           <Scene key = 'truck' component = {TruckView} {...this.props} direction = 'vertical' panHandlers={null}/>
         </Scene>
       </Router>

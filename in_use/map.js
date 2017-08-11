@@ -359,11 +359,11 @@ export default class MapPage extends Component {
     });
   }
 
-  onCheckoutPress(itemCounts, totalPrice) {
+  onCheckoutPress(cart) {
+    console.log(cart);
     Actions.pop();
     Actions.order({
-      itemCounts: itemCounts,
-      totalPrice: totalPrice,
+      cart: cart,
     });
   }
 

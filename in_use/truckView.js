@@ -31,80 +31,36 @@ const MENU_ITEM_HEIGHT = 50
 const food_truck_img = require('./food-truck-img.jpg')
 
 @observer export default class TruckView extends Component {
-  @observable itemPressed;
-  @observable itemCounts;
-  @observable totalPrice;
-  @observable numItems;
+  @observable itemPressed = null;
+  @observable modalOpen = false;
+  @observable cart = {
+    totalPrice: 0,
+    numItems: 0,
+    itemCounts: {},
+  }
+
   constructor(props) {
     super(props);
-    // this.pressData = {}
-    //
-    // for (var i = 0; i < MENU_ITEMS_NUM; i++){
-    //   this.pressData[i] = false;
-    // }
-    //
-    // const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
-    // const dataSource = ds.cloneWithRows(this.generateRows(this.props.menu));
-    this.itemCounts = {};
     if (this.props.menu != null) {
-      this.totalPrice = 0;
+      this.cart.totalPrice = 0;
       this.props.menu.map((item, i) => {
-        this.itemCounts[item.item] = 0;
+        this.cart.itemCounts[item.item] = {item: item, count: 0};
       });
     }
-
-    this.numItems = 0;
-    this.itemPressed = null;
-    this.state = {
-      modalOpen: false,
-    };
   }
 
-  // generateRows(menu) {
-  //   var dataObj = [];
-  //   for (var i = 0; i < MENU_ITEMS_NUM; i++) {
-  //     if (menu != undefined) {
-  //       // lost menu.id
-  //       rowObj = {text: menu[i].item, price: menu[i].price, id: i, selected: this.pressData[i]};
-  //       dataObj.push(rowObj);
-  //     }
-  //   }
-  //   return dataObj;
-  // }
-
-  // handlePress(row) {
-  //   this.pressData[row.id] = !this.pressData[row.id];
-  //   this.setState({dataSource: this.state.dataSource.cloneWithRows(
-  //     this.generateRows(this.props.menu)
-  //   )});
-  // }
-  //
-  // renderRow(row) {
-  //   var background = this.pressData[row.id] ? GREEN : 'white';
-  //   return (
-  //     <TouchableHighlight onPress = {() => {this.handlePress(row)}} style = {{height: MENU_ITEM_HEIGHT, backgroundColor:background, borderBottomWidth: 2, borderColor: 'black'}}>
-  //       <View style = {{flex: 1, flexDirection:'row'}}>
-  //         <Text style = {{alignSelf: 'center', left: 0}}> {row.text} </Text>
-  //         <Text style = {{alignSelf: 'center', right: 0, position:'absolute'}}> {'Price: $'+row.price} </Text>
-  //       </View>
-  //     </TouchableHighlight>
-  //   )
-  // }
 
   onExitPress = () => {
-    this.setState({
-      modalOpen: false,
-    });
+    this.modalOpen = false;
     this.itemPressed = null;
   }
 
-  onAddToCartPress = () => {
-    console.log("doing it...")
-    this.numItems += this.itemCounts[this.itemPressed.item]
-    this.totalPrice += this.numItems*this.itemPressed.price;
-    this.setState({
-      modalOpen: false,
-    });
+  onAddToCartPress = (countIncrease) => {
+    // itemPressed is still the item that was selected
+    this.cart.numItems += countIncrease;
+    this.cart.totalPrice += countIncrease * this.itemPressed.price;
+    this.cart.itemCounts[this.itemPressed.item].count += countIncrease;
+    this.modalOpen = false;
     this.itemPressed = null;
   }
 
@@ -112,10 +68,10 @@ const food_truck_img = require('./food-truck-img.jpg')
     return (
       <View>
         {this.props.menu.map((item, i) => (
-          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed=item; this.setState({modalOpen: true})}} style = {styles.menuItem}>
+          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed=item; this.modalOpen= true}} style = {styles.menuItem}>
             <View>
               <Text style = {styles.menuItemName}>{this.toTitleCase(item.item)}</Text>
-              <Text style = {styles.menuItemCount}>{this.itemCounts[item.item]}</Text>
+              <Text style = {styles.menuItemCount}>{this.cart.itemCounts[item.item].count < 1 ? "" : this.cart.itemCounts[item.item].count}</Text>
               <Text style = {styles.menuItemPrice}>${item.price}</Text>
             </View>
           </TouchableHighlight>
@@ -132,8 +88,7 @@ const food_truck_img = require('./food-truck-img.jpg')
       item = this.itemPressed;
       return (
         <MenuItemModal
-          itemCounts = {this.itemCounts}
-          itemName = {item.item}
+          itemPressed = {this.itemPressed}
           onExitPress = {this.onExitPress}
           onAddToCartPress = {this.onAddToCartPress}
         />
@@ -142,7 +97,7 @@ const food_truck_img = require('./food-truck-img.jpg')
   }
 
   onItemCountsUpdate = (priceChange) => {
-    this.totalPrice += priceChange;
+    this.cart.totalPrice += priceChange;
   }
 
   // move this to some other utils?
@@ -156,10 +111,10 @@ const food_truck_img = require('./food-truck-img.jpg')
       return null
     }
     else {
-      console.log(this.itemCounts);
+      console.log(this.cart.numItems, this.cart.itemCounts, this.cart.totalPrice);
       return (
         <View style = {styles.container}>
-          <Modal isVisible={this.state.modalOpen}>
+          <Modal isVisible={this.modalOpen}>
             {this.renderItemModal()}
           </Modal>
           <ScrollView style={styles.container}>
@@ -191,9 +146,9 @@ const food_truck_img = require('./food-truck-img.jpg')
             {this.renderMenu()}
           </ScrollView>
           <View style = {styles.bottomTab}>
-            <Text style = {styles.cartText}>Total Price:  ${this.totalPrice}</Text>
-            <Text style = {styles.cartText}>Item Count:  {this.numItems}</Text>
-            <TouchableHighlight onPress = {() => {this.props.onCheckoutPress(this.itemCounts, this.totalPrice)}} style = {styles.checkoutButton}>
+            <Text style = {styles.cartText}>Total Price:  ${this.cart.totalPrice}</Text>
+            <Text style = {styles.cartText}>Item Count:  {this.cart.numItems}</Text>
+            <TouchableHighlight onPress = {() => {this.props.onCheckoutPress(this.cart)}} style = {styles.checkoutButton}>
               <Text style = {styles.checkoutButtonText}>Checkout</Text>
             </TouchableHighlight>
           </View>
