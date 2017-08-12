@@ -311,7 +311,6 @@ const previewBlockSpacing = 10;
   }
 
   openTruckView = (item) => {
-    console.log("opening truck")
     Actions.truck({
       truckName: this.truckData[item.key]['name'],
       menu: this.truckData[item.key]['menu'],
@@ -331,20 +330,21 @@ const previewBlockSpacing = 10;
 
   renderSearchResultRow = (rowData) => {
     return (
-      <TouchableOpacity style = {styles.searchResultRow} onPress = {(rowData) => {console.log("pressed"); this.openTruckView({key:0})}}>
-        <Text style = {styles.searchResultText}>{rowData.name}</Text>
+      <TouchableOpacity style = {styles.searchResultRow} onPress = {(rowData) => {this.openTruckView({key:0})}}>
+        <Text style = {styles.searchResultText}>{this.toTitleCase(rowData.name)}</Text>
       </TouchableOpacity>
     );
   }
 
   handleSearchResults = (results) => {
-    if (this.searchBarVisible && results.length > 0) {
+    if (results.length > 0) {
       this.searchResultsDataSource = this.searchResultsDs.cloneWithRows(results)
       // TODO: this will definitely need changing on Androi
       this.searchResultsView = (
         <ListView style = {styles.searchResultsContainer}
           dataSource = {this.searchResultsDataSource}
           renderRow = {(rowData) => this.renderSearchResultRow(rowData)}
+          keyboardShouldPersistTaps="always"
         >
         </ListView>
       );
@@ -357,6 +357,7 @@ const previewBlockSpacing = 10;
       <View style = {styles.container}>
         <MapView
           ref={map => this.map = map}
+          onPress = {() => {this.searchbar && this.searchbar.hide()}}
           showsUserLocation
           style={styles.map}
           region={this.region}
@@ -381,7 +382,7 @@ const previewBlockSpacing = 10;
         </MapView>
         {this.renderFilterWindow()}
         <TouchableOpacity style={styles.searchButton}
-          onPress={() => {this.searchBarVisible = true; this.searchbar.show()}}>
+          onPress={() => {this.searchbar.show()}}>
           <Icon name = "search" size = {30} color = {'white'}/>
         </TouchableOpacity>
         <TouchableOpacity style={styles.locationButton}
@@ -417,12 +418,13 @@ const previewBlockSpacing = 10;
         />
         <View style = {{flex: 1, top: 0, position: 'absolute'}}>
           <SearchBar
+            style = {{backgroundColor: 'red'}}
             ref={(ref) => this.searchbar = ref}
             placeholder = {'Search Food Trucks'}
             data = {this.truckData.slice()}
             handleResults = {this.handleSearchResults}
             handleChangeText = {this.handleChangeText}
-            onHide = {() => {this.searchResultsView = null; this.searchBarVisible = false}}
+            onHide = {() => {this.searchResultsView = null}}
           />
           {this.searchResultsView}
         </View>
@@ -570,5 +572,9 @@ const styles = StyleSheet.create({
   },
   searchResultRow: {
     backgroundColor: 'white',
+    height: 50,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'grey'
   },
 });
