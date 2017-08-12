@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
   },
   addToCartText: {
     fontSize: 15,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   exitButton: {
     justifyContent: 'center',
@@ -124,9 +125,11 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 30,
     backgroundColor: 'transparent',
+    fontFamily: 'Arial Rounded MT Bold',
   },
   subtitleText: {
     fontSize: 20,
     backgroundColor: 'transparent',
+    fontFamily: 'Arial Rounded MT Bold',
   },
 })

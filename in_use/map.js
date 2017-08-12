@@ -479,6 +479,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: 'white',
     fontWeight: 'bold',
+    fontFamily: 'Arial Rounded MT Bold',
   },
   truckScroll: {
     bottom: 6,
@@ -520,6 +521,7 @@ const styles = StyleSheet.create({
   pinCalloutText: {
     fontSize: 15,
     color: GREEN,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   filterTypeSelect: {
     borderRadius: 3,

@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   editButton: {
-    
+
   },
   bottomTabBar: {
     backgroundColor: GREEN,

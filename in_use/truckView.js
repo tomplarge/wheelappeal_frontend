@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   backButtonIcon: {
     width: 25,
     alignSelf: 'center',
+    fontFamily: 'Arial Rounded MT Bold',
   },
   favButton: {
     position: 'absolute',
@@ -222,10 +223,12 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 40,
     left: 0,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   subtitleText: {
     fontSize: 15,
     left: 0,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   map: {
     height: 250,
@@ -250,11 +253,13 @@ const styles = StyleSheet.create({
   },
   checkoutButtonText: {
     fontSize: 15,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   cartText: {
     left: 10,
     fontSize: 15,
     color: GREEN,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   menuItem: {
     width: screen.width,
@@ -267,11 +272,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontSize: 15,
     left: 5,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   menuItemPrice: {
     position: 'absolute',
     fontSize: 15,
     right: 5,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   menuItemCount: {
     color: GREEN,
