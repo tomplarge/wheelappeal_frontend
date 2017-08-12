@@ -66,9 +66,9 @@ const previewBlockSpacing = 10;
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   };
-  @observable results = [];
   @observable markers = [];
   @observable constMarkers = [];
+  @observable searchResultsView;
 
   constructor(props) {
     console.log("Constructing Map");
@@ -100,6 +100,8 @@ const previewBlockSpacing = 10;
       this.filterDataSource[filterName] = filterDs[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
     })
 
+    this.searchResultsDs = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
+
     fetch('http://wheelappeal.co:5000/v1/trucks', {
       method: 'GET',
       headers: {
@@ -130,6 +132,7 @@ const previewBlockSpacing = 10;
 
   onRegionChange = (reg) => {
     this.region = reg;
+    this.map.region = this.region
   }
 
   setCurrentLocation = () => {
@@ -141,9 +144,7 @@ const previewBlockSpacing = 10;
             latitudeDelta: 0.0421,
             longitudeDelta: 0.0922
         };
-        if (this.map) {
-          this.map.region = this.region;
-        }
+        this.map.region = this.region;
     });
   }
 
@@ -219,10 +220,6 @@ const previewBlockSpacing = 10;
   toTitleCase(str) {
     str = str.replace(/_/g, ' ');
     return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
-  }
-
-  handleSearchResults = (results) => {
-    this.results = results;
   }
 
   generateFilterRows(filters, filterName) {
@@ -314,6 +311,7 @@ const previewBlockSpacing = 10;
   }
 
   openTruckView = (item) => {
+    console.log("opening truck")
     Actions.truck({
       truckName: this.truckData[item.key]['name'],
       menu: this.truckData[item.key]['menu'],
@@ -331,17 +329,32 @@ const previewBlockSpacing = 10;
     });
   }
 
+  renderSearchResultRow = (rowData) => {
+    return (
+      <TouchableOpacity style = {styles.searchResultRow} onPress = {(rowData) => {console.log("pressed"); this.openTruckView({key:0})}}>
+        <Text style = {styles.searchResultText}>{rowData.name}</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  handleSearchResults = (results) => {
+    if (this.searchBarVisible && results.length > 0) {
+      this.searchResultsDataSource = this.searchResultsDs.cloneWithRows(results)
+      // TODO: this will definitely need changing on Androi
+      this.searchResultsView = (
+        <ListView style = {styles.searchResultsContainer}
+          dataSource = {this.searchResultsDataSource}
+          renderRow = {(rowData) => this.renderSearchResultRow(rowData)}
+        >
+        </ListView>
+      );
+    }
+  }
+
   render() {
     console.log("Rendering Map");
     return (
       <View style = {styles.container}>
-        <SearchBar
-          ref={(ref) => this.searchbar = ref}
-          placeholder = {'Search Food Trucks'}
-          data = {this.truckData.slice()}
-          handleResults = {this.handleSearchResults}
-          onHide = {() => {this.searchBarVisible = false}}
-        />
         <MapView
           ref={map => this.map = map}
           showsUserLocation
@@ -355,7 +368,7 @@ const previewBlockSpacing = 10;
               key = {marker.key}
               coordinate={marker.coordinate}
               title={marker.title}
-              onPress = {() => {this.list.scrollToIndex({index: marker.key})}}>
+              onPress = {() => {this.truckList.scrollToIndex({index: marker.key})}}>
               <MapView.Callout>
                 <View>
                   <Text style = {styles.pinCalloutText}>{this.toTitleCase(marker.data.name)}</Text>
@@ -387,7 +400,7 @@ const previewBlockSpacing = 10;
           <CommunityIcon name = "filter-outline" size = {20} color = {'white'}/>
         </TouchableOpacity>
         <FlatList
-          ref={list => this.list = list}
+          ref={list => this.truckList = list}
           style = {styles.truckScroll}
           horizontal={true}
           data={this.markers}
@@ -402,6 +415,17 @@ const previewBlockSpacing = 10;
             </TouchableOpacity>
           }
         />
+        <View style = {{flex: 1, top: 0, position: 'absolute'}}>
+          <SearchBar
+            ref={(ref) => this.searchbar = ref}
+            placeholder = {'Search Food Trucks'}
+            data = {this.truckData.slice()}
+            handleResults = {this.handleSearchResults}
+            handleChangeText = {this.handleChangeText}
+            onHide = {() => {this.searchResultsView = null; this.searchBarVisible = false}}
+          />
+          {this.searchResultsView}
+        </View>
       </View>
     );
   }
@@ -531,5 +555,20 @@ const styles = StyleSheet.create({
     height: FILTER_ITEM_HEIGHT,
     justifyContent:'center',
     alignItems:'center',
+  },
+  searchResultsContainer: {
+    top: 72, // definitely will break on android
+    width: screen.width,
+    flex: 1,
+  },
+  searchResultText: {
+    fontSize: 20,
+    color: GREEN,
+    left: 0,
+    margin: 5,
+    fontFamily: 'Arial Rounded MT Bold',
+  },
+  searchResultRow: {
+    backgroundColor: 'white',
   },
 });

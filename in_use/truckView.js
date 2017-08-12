@@ -40,7 +40,7 @@ const food_truck_img = require('./food-truck-img.jpg')
   }
 
   constructor(props) {
-    // console.log("Constructing TruckView"); 
+    // console.log("Constructing TruckView");
     super(props);
     if (this.props.menu != null) {
       this.cart.totalPrice = 0;
@@ -49,7 +49,6 @@ const food_truck_img = require('./food-truck-img.jpg')
       });
     }
   }
-
 
   onExitPress = () => {
     this.modalOpen = false;
