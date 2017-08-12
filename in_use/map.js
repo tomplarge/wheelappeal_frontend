@@ -4,11 +4,10 @@ import TruckView from './truckView';
 import SearchBar from 'react-native-searchbar';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
-import Modal from 'react-native-modal';
-import Callout from "react-native-callout";
 import {Actions} from 'react-native-router-flux';
+import {observer} from 'mobx-react';
+import {observable} from "mobx"
 
-//import PreviewPanController from './PreviewPanController'
 import {
     Text,
     View,
@@ -25,7 +24,6 @@ const ORANGE = '#ffb123'
 const LATITUDE = 37.78825;
 const LONGITUDE = -122.4324;
 const screen = Dimensions.get('window');
-const NUM_FILTERS = 3;
 const FILTER_WIDTH = (screen.width - 50)/3 - 10;
 
 // use api for cuisine options?
@@ -40,12 +38,43 @@ const previewBlockHeight = 75;
 const previewBlockWidth = screen.width*7/10;
 const previewBlockSpacing = 10;
 
-export default class MapPage extends Component {
+@observer export default class MapPage extends Component {
+  @observable filters = {
+    'cuisine': {
+      key: 0,
+      selected: null,
+      open: false,
+    },
+    'price': {
+      key: 1,
+      selected: null,
+      open: false,
+    },
+    'waitTime': {
+      key: 2,
+      selected: null,
+      open: false,
+    },
+  };
+  @observable filterOpen = false;
+  @observable searchBarVisible = false;
+  @observable filterDataSource = {};
+  @observable truckData = [];
+  @observable region = {
+    latitude: LATITUDE,
+    longitude: LONGITUDE,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  };
+  @observable results = [];
+  @observable markers = [];
+  @observable constMarkers = [];
+
   constructor(props) {
+    console.log("Constructing Map");
     super(props);
-
     this.filterButtonPos = null;
-
+    // this can be consolidated
     cuisineDefaultSelected = {}
     for (var i = 0; i < FILTER_OPTIONS['cuisine'].length; i++) {
       cuisineDefaultSelected[FILTER_OPTIONS['cuisine'][i]] = false;
@@ -61,60 +90,16 @@ export default class MapPage extends Component {
       waitTimeDefaultSelected[FILTER_OPTIONS['waitTime'][i]] = false;
     }
 
-    filters = {
-      'cuisine': {
-        key: 0,
-        selected: cuisineDefaultSelected,
-        open: false,
-      },
-      'price': {
-        key: 1,
-        selected: priceDefaultSelected,
-        open: false,
-      },
-      'waitTime': {
-        key: 2,
-        selected: waitTimeDefaultSelected,
-        open: false,
-      },
-    };
+    this.filters['cuisine'].selected = cuisineDefaultSelected;
+    this.filters['price'].selected = priceDefaultSelected;
+    this.filters['waitTime'].selected = waitTimeDefaultSelected;
 
-    filterDs = {}
-    filterDataSource = {}
-    Object.keys(filters).forEach((filterName) => {
+    var filterDs = {};
+    Object.keys(this.filters).forEach((filterName) => {
       filterDs[filterName] = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
-      filterDataSource[filterName] = filterDs[filterName].cloneWithRows(this.generateFilterRows(filters, filterName));
+      this.filterDataSource[filterName] = filterDs[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
     })
 
-    this.state = {
-      truckIndex: null,
-      modalOpen: false,
-      filterOpen: false,
-      region: {
-        latitude: LATITUDE,
-        longitude: LONGITUDE,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      },
-      constMarkers: [],
-      markers: [],
-      truckData: [],
-      results: [],
-      searchBarVisible: false,
-      filters: filters,
-      filterDs: filterDs,
-      filterDataSource: filterDataSource,
-    }
-  }
-
-  onRegionChange = (reg) => {
-    this.setState({region: reg});
-  }
-  componentDidUpdate() {
-    console.log(this.state.truckIndex)
-  }
-  componentWillMount() {
-    this.setState({modalOpen: false});
     fetch('http://wheelappeal.co:5000/v1/trucks', {
       method: 'GET',
       headers: {
@@ -123,12 +108,12 @@ export default class MapPage extends Component {
       },
     })
     .then((response) => response.json()) // returns a promise
-    .then((responseJSON) => {this.setTruckData(responseJSON)}) // JSON promise handled here
+    .then((responseJSON) => {this.truckData = responseJSON; this.setMarkers()}) // JSON promise handled here
 
     // this is algorithmically slow - change when we get real data
     // Also, might be handling these promises in a weird way.
     .then(() => {
-      this.state.truckData.map((truckdata, i) => {
+      this.truckData.map((truckdata, i) => {
         fetch('http://wheelappeal.co:5000/v1/menu?truckname='+truckdata.name.toString(), {
           method: 'GET',
           headers: {
@@ -138,102 +123,87 @@ export default class MapPage extends Component {
         })
         .then((response) => response.json())
         .then((responseJSON) => {this.setMenu(i, responseJSON)})
-      })
-    })
+      });
+    });
+    this.setCurrentLocation();
   }
 
-  componentDidMount = () => {
-    this.setCurrentLocation();
+  onRegionChange = (reg) => {
+    this.region = reg;
   }
 
   setCurrentLocation = () => {
     navigator.geolocation.getCurrentPosition(
-      (position) =>
-      {
-        this.setState({
-          region:
-          {
+      (position) => {
+        this.region = {
             longitude: position.coords.longitude,
             latitude: position.coords.latitude,
             latitudeDelta: 0.0421,
             longitudeDelta: 0.0922
-          },
-        });
+        };
         if (this.map) {
-          this.map.region = this.state.region;
+          this.map.region = this.region;
         }
     });
   }
 
-  setTruckData = (response) => {
-    console.log('Setting Truck Data')
-    this.setState({
-      truckData: response
-    })
-    this.setMarkers();
-  }
-
   setMarkers = () => {
-    console.log('Setting Markers')
-    this.setState({
-      markers: [
-        {
-          key:0,
-          data: this.state.truckData[0],
-          coordinate: {
-            latitude: LATITUDE,
-            longitude: LONGITUDE,
-          },
+    this.markers = [
+      {
+        key:0,
+        data: this.truckData[0],
+        coordinate: {
+          latitude: LATITUDE,
+          longitude: LONGITUDE,
         },
-        {
-          key:1,
-          data: this.state.truckData[1],
-          coordinate: {
-            latitude: LATITUDE + 0.01,
-            longitude: LONGITUDE - 0.01,
-          },
+      },
+      {
+        key:1,
+        data: this.truckData[1],
+        coordinate: {
+          latitude: LATITUDE + 0.01,
+          longitude: LONGITUDE - 0.01,
         },
-        {
-          key:2,
-          data: this.state.truckData[2],
-          coordinate: {
-            latitude: LATITUDE - 0.01,
-            longitude: LONGITUDE - 0.01,
-          },
+      },
+      {
+        key:2,
+        data: this.truckData[2],
+        coordinate: {
+          latitude: LATITUDE - 0.01,
+          longitude: LONGITUDE - 0.01,
         },
-      ],
-      constMarkers: [
-        {
-          key:0,
-          data: this.state.truckData[0],
-          coordinate: {
-            latitude: LATITUDE,
-            longitude: LONGITUDE,
-          },
+      },
+    ];
+    this.constMarkers = [
+      {
+        key:0,
+        data: this.truckData[0],
+        coordinate: {
+          latitude: LATITUDE,
+          longitude: LONGITUDE,
         },
-        {
-          key:1,
-          data: this.state.truckData[1],
-          coordinate: {
-            latitude: LATITUDE + 0.01,
-            longitude: LONGITUDE - 0.01,
-          },
+      },
+      {
+        key:1,
+        data: this.truckData[1],
+        coordinate: {
+          latitude: LATITUDE + 0.01,
+          longitude: LONGITUDE - 0.01,
         },
-        {
-          key:2,
-          data: this.state.truckData[2],
-          coordinate: {
-            latitude: LATITUDE - 0.01,
-            longitude: LONGITUDE - 0.01,
-          },
+      },
+      {
+        key:2,
+        data: this.truckData[2],
+        coordinate: {
+          latitude: LATITUDE - 0.01,
+          longitude: LONGITUDE - 0.01,
         },
-      ],
-    });
+      },
+    ];
   }
 
   setMenu = (idx, menu) => {
-    console.log('Setting Menu for Truck ' + idx)
-    this.state.truckData[idx].menu = menu
+    this.truckData[idx].menu = menu
   }
 
   // there might be a system string operation for multiplication
@@ -252,7 +222,7 @@ export default class MapPage extends Component {
   }
 
   handleSearchResults = (results) => {
-    this.setState({results: results})
+    this.results = results;
   }
 
   generateFilterRows(filters, filterName) {
@@ -275,53 +245,47 @@ export default class MapPage extends Component {
       )
   }
 
-  handleFilterPress(row, i) {
-    let {filters, filterDataSource} = this.state;
+  handleFilterPress = (row, i) => {
     // gotta be a better way
-    filterName = Object.keys(filters)[i];
-    filter = filters[filterName];
+    filterName = Object.keys(this.filters)[i];
+    filter = this.filters[filterName];
     filter.selected[row.text] = !filter.selected[row.text];
-    filterDataSource[filterName] = this.state.filterDataSource[filterName].cloneWithRows(this.generateFilterRows(filters, filterName));
-    this.setState({filters: filters, filterDataSource: filterDataSource});
+    this.filterDataSource[filterName] = this.filterDataSource[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
     this.makeFilterHappen(filterName);
   }
 
   onFilterSelection = (filterName) => {
-    let {filters} = this.state;
-    filters[filterName].open = !filters[filterName].open;
-    this.setState({filters: filters});
+    this.filters[filterName].open = !this.filters[filterName].open;
   }
 
   // need input? we don't want to search over every filter every time
   // filterName: 'cuisine', 'price', etc.
   makeFilterHappen = (filterName) => {
-    let {filters, constMarkers} = this.state;
-    filterObj = filters[filterName]; //the object associated with cuisine, price, etc.
+    filterObj = this.filters[filterName]; //the object associated with cuisine, price, etc.
     selectedFilters = Object.keys(filterObj.selected).filter(el => filterObj.selected[el] == true)
     // this is linear just for testing - make it not
     // TODO: improve this!!
     var tempMarkers = []
-    for (var i = 0; i < constMarkers.length; i++) {
+    for (var i = 0; i < this.constMarkers.length; i++) {
       // also not a good way to check these things. Just for testing
       // TODO: improve this!!
-      if (selectedFilters.find(selectedFilter => constMarkers[i].data.cuisine == selectedFilter) == undefined) {
-        tempMarkers.push(constMarkers[i]);
+      if (selectedFilters.find(selectedFilter => this.constMarkers[i].data.cuisine == selectedFilter) != undefined) {
+        tempMarkers.push(this.constMarkers[i]);
       }
     }
-    this.setState({markers: tempMarkers});
-    //console.log(this.state.markers)
+    this.markers = tempMarkers;
   }
 
   renderFilterWindow() {
-    if (this.state.filterOpen == true && this.filterButtonPos != null) {
+    if (this.filterOpen == true && this.filterButtonPos != null) {
       return (
         <View style = {[styles.filtersContainer, {width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10,}]}
           pointerEvents = 'box-none'
         >
-          {Object.keys(this.state.filters).map((filter, i) => (
-            <View key = {i} style = {[styles.filtersListContainer, {height: this.state.filters[filter].open ? 110 : 0,}]}>
+          {Object.keys(this.filters).map((filter, i) => (
+            <View key = {i} style = {[styles.filtersListContainer, {height: this.filters[filter].open ? 110 : 0,}]}>
               <ListView
-                dataSource = {this.state.filterDataSource[filter]}
+                dataSource = {this.filterDataSource[filter]}
                 renderRow = {this.renderFilterRow.bind(this, i)}
               />
             </View>
@@ -351,16 +315,16 @@ export default class MapPage extends Component {
 
   openTruckView = (item) => {
     Actions.truck({
-      truckName: this.state.truckData[item.key]['name'],
-      menu: this.state.truckData[item.key]['menu'],
-      marker: this.state.markers[item.key],
-      region: this.state.region,
+      truckName: this.truckData[item.key]['name'],
+      menu: this.truckData[item.key]['menu'],
+      marker: this.markers[item.key],
+      region: this.region,
       onCheckoutPress: this.onCheckoutPress,
     });
   }
 
   onCheckoutPress(cart) {
-    console.log(cart);
+    // console.log(cart);
     Actions.pop();
     Actions.order({
       cart: cart,
@@ -368,27 +332,24 @@ export default class MapPage extends Component {
   }
 
   render() {
-    const {
-      markers,
-    } = this.state;
-
+    console.log("Rendering Map");
     return (
       <View style = {styles.container}>
         <SearchBar
           ref={(ref) => this.searchbar = ref}
           placeholder = {'Search Food Trucks'}
-          data = {this.state.truckData}
+          data = {this.truckData.slice()}
           handleResults = {this.handleSearchResults}
-          onHide = {() => {this.setState({searchBarVisible: false})}}
+          onHide = {() => {this.searchBarVisible = false}}
         />
         <MapView
           ref={map => this.map = map}
           showsUserLocation
           style={styles.map}
-          region={this.state.region}
+          region={this.region}
           onRegionChange={(reg) => {this.onRegionChange(reg)}}
         >
-          {this.state.markers.map(marker => (
+          {this.markers.map(marker => (
             <MapView.Marker
               ref = {'marker'+marker.key}
               key = {marker.key}
@@ -407,7 +368,7 @@ export default class MapPage extends Component {
         </MapView>
         {this.renderFilterWindow()}
         <TouchableOpacity style={styles.searchButton}
-          onPress={() => {this.setState({searchBarVisible: true}); this.searchbar.show()}}>
+          onPress={() => {this.searchBarVisible = true; this.searchbar.show()}}>
           <Icon name = "search" size = {30} color = {'white'}/>
         </TouchableOpacity>
         <TouchableOpacity style={styles.locationButton}
@@ -417,7 +378,7 @@ export default class MapPage extends Component {
           <Icon name = "my-location" size = {30} color = {'white'}/>
         </TouchableOpacity>
         <TouchableOpacity style = {styles.filterButton}
-          ref = {ref => this.filterButton = ref} onPress = {() => {this.setState({filterOpen: !this.state.filterOpen})}}
+          ref = {ref => this.filterButton = ref} onPress = {() => {this.filterOpen = !this.filterOpen}}
           onLayout={(event) => {
             var {x, y, width, height} = event.nativeEvent.layout;
             this.filterButtonPos = {x,y,width,height};
@@ -429,7 +390,7 @@ export default class MapPage extends Component {
           ref={list => this.list = list}
           style = {styles.truckScroll}
           horizontal={true}
-          data={this.state.markers}
+          data={this.markers}
           getItemLayout = {(data,index) => (
             {length: previewBlockWidth, offset: (previewBlockWidth+2*previewBlockSpacing)*index, index}
           )}
@@ -437,7 +398,7 @@ export default class MapPage extends Component {
             <TouchableOpacity
               onPress={() => this.openTruckView(item)}
               style = {styles.previewBlock}>
-                <Text style = {styles.previewBlockText}>{this.toTitleCase(this.state.truckData[item.key].name)}</Text>
+                <Text style = {styles.previewBlockText}>{this.toTitleCase(this.truckData[item.key].name)}</Text>
             </TouchableOpacity>
           }
         />
@@ -482,6 +443,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Arial Rounded MT Bold',
   },
   truckScroll: {
+    width: screen.width,
     bottom: 6,
     position: 'absolute',
   },

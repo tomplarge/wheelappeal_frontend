@@ -36,7 +36,7 @@ const ORANGE = '#ffb123'
   }
 
   onDecreaseCountPress = () => {
-    console.log(this.exitOption)
+    // console.log(this.exitOption)
     if (this.currentCount > 1) {
       this.currentCount -= 1;
     }
@@ -47,6 +47,7 @@ const ORANGE = '#ffb123'
       this.currentCount = 1;
     }
   }
+
   render() {
     return (
       <View style = {styles.container}>
@@ -114,6 +115,7 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 30,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   countContainer: {
     position: 'absolute',

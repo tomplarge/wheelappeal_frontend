@@ -40,6 +40,7 @@ const food_truck_img = require('./food-truck-img.jpg')
   }
 
   constructor(props) {
+    // console.log("Constructing TruckView"); 
     super(props);
     if (this.props.menu != null) {
       this.cart.totalPrice = 0;
@@ -107,11 +108,12 @@ const food_truck_img = require('./food-truck-img.jpg')
   }
 
   render() {
+    // console.log("Rendering TruckView");
     if (this.props.truckName === null) {
       return null
     }
     else {
-      console.log(this.cart.numItems, this.cart.itemCounts, this.cart.totalPrice);
+      // console.log(this.cart.numItems, this.cart.itemCounts, this.cart.totalPrice);
       return (
         <View style = {styles.container}>
           <Modal isVisible={this.modalOpen}>
@@ -155,7 +157,7 @@ const food_truck_img = require('./food-truck-img.jpg')
           <TouchableHighlight style = {styles.backButton} onPress = {() => {Actions.pop()}}>
             <Icon name = "arrow-back" size = {25} color = {GREEN} style = {styles.backButtonIcon}/>
           </TouchableHighlight>
-          <TouchableHighlight style = {styles.favButton} onPress = {() => {console.log("Fav")}}>
+          <TouchableHighlight style = {styles.favButton}>
             <Icon name = "favorite" size = {25} color = {GREEN} style = {styles.favButtonIcon}/>
           </TouchableHighlight>
         </View>

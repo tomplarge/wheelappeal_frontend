@@ -27,6 +27,7 @@ const GREEN2 = '#00b789'
   @observable cart;
 
   constructor(props) {
+    // console.log("Constructing OrderPage");
     super(props);
     this.cart = this.props.cart;
   }
@@ -88,14 +89,15 @@ const GREEN2 = '#00b789'
   }
 
   render(){
+    // console.log("Rendering OrderPage");
     return(
       <View style = {styles.container}>
         <Modal isVisible={this.modalOpen}>
           {this.renderItemModal()}
         </Modal>
-        <View style = {styles.topTabBar}>
+        <LinearGradient colors = {[GREEN, GREEN2]} style = {styles.topTabBar}>
           <Text style = {styles.topTabBarText}>Your Order</Text>
-        </View>
+        </LinearGradient>
         <ScrollView style = {styles.container}>
           <View style = {styles.titleContainer}>
             <Text style = {styles.titleText}>Truck Name</Text>
@@ -123,6 +125,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     alignSelf:'center',
     backgroundColor: 'transparent',
+    fontFamily: 'Arial Rounded MT Bold',
   },
   editButton: {
 
@@ -136,6 +139,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     alignSelf: 'center',
     backgroundColor: 'transparent',
+    fontFamily: 'Arial Rounded MT Bold',
   },
   cartItemContainer: {
     flex: 1,
@@ -149,6 +153,7 @@ const styles = StyleSheet.create({
   cartItemText: {
     fontSize: 20,
     backgroundColor: 'transparent',
+    fontFamily: 'Arial Rounded MT Bold',
   },
   titleContainer: {
     borderBottomWidth: 1,
@@ -157,9 +162,11 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 40,
     backgroundColor: 'transparent',
+    fontFamily: 'Arial Rounded MT Bold',
   },
   subtitleText: {
     fontSize: 20,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   menuItem: {
     width: screen.width,
@@ -172,11 +179,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontSize: 15,
     left: 5,
+    fontFamily: 'Arial Rounded MT Bold',
   },
   menuItemCount: {
     color: GREEN,
     position: 'absolute',
     fontSize: 15,
     right: 5,
+    fontFamily: 'Arial Rounded MT Bold',
   },
 })
