@@ -1,4 +1,4 @@
-ppeal_frontend
+WheelAppeal_frontend
 Front end code for the Wheel Appeal project
 
 Mobile App
@@ -15,3 +15,8 @@ react-native run-ios
 
 This should start up a terminal window for the JS development server and an iPhone simulator containing the mobile app.
 
+ - - - - -
+|         |
+|         |
+|         |
+ - - - - -
