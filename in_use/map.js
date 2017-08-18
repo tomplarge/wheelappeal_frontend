@@ -110,7 +110,7 @@ const previewBlockSpacing = 10;
       },
     })
     .then((response) => response.json()) // returns a promise
-    .then((responseJSON) => {this.truckData = responseJSON; this.setMarkers()}) // JSON promise handled here
+    .then((responseJSON) => {this.truckData = responseJSON; this.setMarkers(this.truckData)}) // JSON promise handled here
 
     // this is algorithmically slow - change when we get real data
     // Also, might be handling these promises in a weird way.
@@ -148,59 +148,25 @@ const previewBlockSpacing = 10;
     });
   }
 
-  setMarkers = () => {
-    this.markers = [
-      {
-        key:0,
-        data: this.truckData[0],
+  setMarkers = (truckData) => {
+    truckData.forEach((data, idx) => {
+      this.markers.push({
+        key:idx,
+        data: this.truckData[idx],
         coordinate: {
-          latitude: LATITUDE,
-          longitude: LONGITUDE,
+          latitude: LATITUDE + 0.01*idx,
+          longitude: LONGITUDE - 0.01*idx,
         },
-      },
-      {
-        key:1,
-        data: this.truckData[1],
+      });
+      this.constMarkers.push({
+        key:idx,
+        data: this.truckData[idx],
         coordinate: {
-          latitude: LATITUDE + 0.01,
-          longitude: LONGITUDE - 0.01,
+          latitude: LATITUDE + 0.01*idx,
+          longitude: LONGITUDE - 0.01*idx,
         },
-      },
-      {
-        key:2,
-        data: this.truckData[2],
-        coordinate: {
-          latitude: LATITUDE - 0.01,
-          longitude: LONGITUDE - 0.01,
-        },
-      },
-    ];
-    this.constMarkers = [
-      {
-        key:0,
-        data: this.truckData[0],
-        coordinate: {
-          latitude: LATITUDE,
-          longitude: LONGITUDE,
-        },
-      },
-      {
-        key:1,
-        data: this.truckData[1],
-        coordinate: {
-          latitude: LATITUDE + 0.01,
-          longitude: LONGITUDE - 0.01,
-        },
-      },
-      {
-        key:2,
-        data: this.truckData[2],
-        coordinate: {
-          latitude: LATITUDE - 0.01,
-          longitude: LONGITUDE - 0.01,
-        },
-      },
-    ];
+      });
+    });
   }
 
   setMenu = (idx, menu) => {
@@ -412,7 +378,7 @@ const previewBlockSpacing = 10;
             <TouchableOpacity
               onPress={() => this.openTruckView(item)}
               style = {styles.previewBlock}>
-                <Text style = {styles.previewBlockText}>{this.toTitleCase(this.truckData[item.key].name)}</Text>
+                <Text style = {styles.previewBlockText}>{this.toTitleCase(item.data.name)}</Text>
             </TouchableOpacity>
           }
         />
