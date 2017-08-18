@@ -1,4 +1,5 @@
-ppeal_frontend
+WheelAppeal_frontend
+
 Front end code for the Wheel Appeal project
 
 Mobile App
@@ -8,10 +9,6 @@ You must have the following requirements:
 - React Native (see 'Building Projects with Native Code' at <href> <href> https://facebook.github.io/react-native/docs/getting-started.html </href>)
 
 To run, do the following:
-```
-cd wheelappeal/mobile_app
-react-native run-ios
-```
-
-This should start up a terminal window for the JS development server and an iPhone simulator containing the mobile app.
-
+- Make sure location services for your computer are turned on
+- Open Xcode, Open > wheelappeal.xcodeproj
+- Click Run
