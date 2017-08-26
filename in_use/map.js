@@ -71,38 +71,39 @@ const previewBlockSpacing = 10;
   @observable searchResultsView;
 
   constructor(props) {
-    console.log("Constructing Map");
     super(props);
-    this.filterButtonPos = null;
-    // this can be consolidated
-    cuisineDefaultSelected = {}
-    for (var i = 0; i < FILTER_OPTIONS['cuisine'].length; i++) {
-      cuisineDefaultSelected[FILTER_OPTIONS['cuisine'][i]] = false;
-    }
+    // this.filterButtonPos = null;
+    // // this can be consolidated
+    // cuisineDefaultSelected = {}
+    // for (var i = 0; i < FILTER_OPTIONS['cuisine'].length; i++) {
+    //   cuisineDefaultSelected[FILTER_OPTIONS['cuisine'][i]] = false;
+    // }
+    //
+    // priceDefaultSelected = {}
+    // for (var i = 0; i < FILTER_OPTIONS['price'].length; i++) {
+    //   priceDefaultSelected[FILTER_OPTIONS['price'][i]] = false;
+    // }
+    //
+    // waitTimeDefaultSelected = {}
+    // for (var i = 0; i < FILTER_OPTIONS['waitTime'].length; i++) {
+    //   waitTimeDefaultSelected[FILTER_OPTIONS['waitTime'][i]] = false;
+    // }
+    //
+    // this.filters['cuisine'].selected = cuisineDefaultSelected;
+    // this.filters['price'].selected = priceDefaultSelected;
+    // this.filters['waitTime'].selected = waitTimeDefaultSelected;
+    //
+    // var filterDs = {};
+    // Object.keys(this.filters).forEach((filterName) => {
+    //   filterDs[filterName] = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
+    //   this.filterDataSource[filterName] = filterDs[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
+    // })
 
-    priceDefaultSelected = {}
-    for (var i = 0; i < FILTER_OPTIONS['price'].length; i++) {
-      priceDefaultSelected[FILTER_OPTIONS['price'][i]] = false;
-    }
-
-    waitTimeDefaultSelected = {}
-    for (var i = 0; i < FILTER_OPTIONS['waitTime'].length; i++) {
-      waitTimeDefaultSelected[FILTER_OPTIONS['waitTime'][i]] = false;
-    }
-
-    this.filters['cuisine'].selected = cuisineDefaultSelected;
-    this.filters['price'].selected = priceDefaultSelected;
-    this.filters['waitTime'].selected = waitTimeDefaultSelected;
-
-    var filterDs = {};
-    Object.keys(this.filters).forEach((filterName) => {
-      filterDs[filterName] = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
-      this.filterDataSource[filterName] = filterDs[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
-    })
-
+    // initialize search results listview datasource
     this.searchResultsDs = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
 
-    fetch('http://wheelappeal.co:5000/v1/trucks', {
+    // get the full truck data from API
+    fetch('http://wheelappeal.co:5000/truck_data', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -110,31 +111,28 @@ const previewBlockSpacing = 10;
       },
     })
     .then((response) => response.json()) // returns a promise
-    .then((responseJSON) => {this.truckData = responseJSON; this.setMarkers(this.truckData)}) // JSON promise handled here
+    .then((responseJSON) => {this.addKeyToTruckData(responseJSON); this.setMarkers(this.truckData)}) // JSON promise handled here
+  }
 
-    // this is algorithmically slow - change when we get real data
-    // Also, might be handling these promises in a weird way.
-    .then(() => {
-      this.truckData.map((truckdata, i) => {
-        fetch('http://wheelappeal.co:5000/v1/menu?truckname='+truckdata.name.toString(), {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        })
-        .then((response) => response.json())
-        .then((responseJSON) => {this.setMenu(i, responseJSON)})
-      });
-    });
+  componentWillMount() {
+    //set current location
     this.setCurrentLocation();
   }
 
+  addKeyToTruckData = (responseJSON) => {
+    responseJSON.forEach((truckData) => {
+      truckData.key = truckData.truck_id;
+    });
+    this.truckData = responseJSON;
+  }
+
+  // called on region change for map
   onRegionChange = (reg) => {
     this.region = reg;
     this.map.region = this.region
   }
 
+  // sets region for map
   setCurrentLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -148,10 +146,12 @@ const previewBlockSpacing = 10;
     });
   }
 
+  // sets markers for Trucks
+  //TODO: this is just setting random-ish locations. implement locations for truckdata
   setMarkers = (truckData) => {
     truckData.forEach((data, idx) => {
       this.markers.push({
-        key:idx,
+        key: this.truckData[idx].truck_id,
         data: this.truckData[idx],
         coordinate: {
           latitude: LATITUDE + 0.01*idx,
@@ -159,7 +159,7 @@ const previewBlockSpacing = 10;
         },
       });
       this.constMarkers.push({
-        key:idx,
+        key: this.truckData[idx].truck_id,
         data: this.truckData[idx],
         coordinate: {
           latitude: LATITUDE + 0.01*idx,
@@ -169,18 +169,14 @@ const previewBlockSpacing = 10;
     });
   }
 
-  setMenu = (idx, menu) => {
-    this.truckData[idx].menu = menu
-  }
-
-  // there might be a system string operation for multiplication
-  priceText(num) {
-    str = "";
-    for (var i = 0; i < num; i++){
-      str += "$";
-    }
-    return str;
-  }
+  // // there might be a system string operation for multiplication
+  // priceText(num) {
+  //   str = "";
+  //   for (var i = 0; i < num; i++){
+  //     str += "$";
+  //   }
+  //   return str;
+  // }
 
   // move this to some other utils?
   toTitleCase(str) {
@@ -188,99 +184,97 @@ const previewBlockSpacing = 10;
     return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
   }
 
-  generateFilterRows(filters, filterName) {
-    var dataObj = [];
-    optionsList = FILTER_OPTIONS[filterName]
-    for (var i = 0; i < optionsList.length; i++) {
-      optionName = optionsList[i]
-      rowObj = {text: optionName, id: i, selected: filters[filterName].selected[optionName]};
-      dataObj.push(rowObj);
-    }
-    return dataObj;
-  }
+  // generateFilterRows(filters, filterName) {
+  //   var dataObj = [];
+  //   optionsList = FILTER_OPTIONS[filterName]
+  //   for (var i = 0; i < optionsList.length; i++) {
+  //     optionName = optionsList[i]
+  //     rowObj = {text: optionName, id: i, selected: filters[filterName].selected[optionName]};
+  //     dataObj.push(rowObj);
+  //   }
+  //   return dataObj;
+  // }
+  //
+  // renderFilterRow(i, row) {
+  //     return (
+  //       <TouchableOpacity style={[styles.filterRow, {backgroundColor: row.selected ? GREEN : 'white'}]}
+  //         onPress = {() => {this.handleFilterPress(row, i)}}>
+  //         <Text> {row.text} </Text>
+  //       </TouchableOpacity>
+  //     )
+  // }
 
-  renderFilterRow(i, row) {
-      return (
-        <TouchableOpacity style={[styles.filterRow, {backgroundColor: row.selected ? GREEN : 'white'}]}
-          onPress = {() => {this.handleFilterPress(row, i)}}>
-          <Text> {row.text} </Text>
-        </TouchableOpacity>
-      )
-  }
-
-  handleFilterPress = (row, i) => {
-    // gotta be a better way
-    filterName = Object.keys(this.filters)[i];
-    filter = this.filters[filterName];
-    filter.selected[row.text] = !filter.selected[row.text];
-    this.filterDataSource[filterName] = this.filterDataSource[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
-    this.makeFilterHappen(filterName);
-  }
-
-  onFilterSelection = (filterName) => {
-    this.filters[filterName].open = !this.filters[filterName].open;
-  }
+  // handleFilterPress = (row, i) => {
+  //   // gotta be a better way
+  //   filterName = Object.keys(this.filters)[i];
+  //   filter = this.filters[filterName];
+  //   filter.selected[row.text] = !filter.selected[row.text];
+  //   this.filterDataSource[filterName] = this.filterDataSource[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
+  //   this.makeFilterHappen(filterName);
+  // }
+  //
+  // onFilterSelection = (filterName) => {
+  //   this.filters[filterName].open = !this.filters[filterName].open;
+  // }
 
   // need input? we don't want to search over every filter every time
   // filterName: 'cuisine', 'price', etc.
-  makeFilterHappen = (filterName) => {
-    filterObj = this.filters[filterName]; //the object associated with cuisine, price, etc.
-    selectedFilters = Object.keys(filterObj.selected).filter(el => filterObj.selected[el] == true)
-    // this is linear just for testing - make it not
-    // TODO: improve this!!
-    var tempMarkers = []
-    for (var i = 0; i < this.constMarkers.length; i++) {
-      // also not a good way to check these things. Just for testing
-      // TODO: improve this!!
-      if (selectedFilters.find(selectedFilter => this.constMarkers[i].data.cuisine == selectedFilter) != undefined) {
-        tempMarkers.push(this.constMarkers[i]);
-      }
-    }
-    this.markers = tempMarkers;
-  }
+  // makeFilterHappen = (filterName) => {
+  //   filterObj = this.filters[filterName]; //the object associated with cuisine, price, etc.
+  //   selectedFilters = Object.keys(filterObj.selected).filter(el => filterObj.selected[el] == true)
+  //   // this is linear just for testing - make it not
+  //   // TODO: improve this!!
+  //   var tempMarkers = []
+  //   for (var i = 0; i < this.constMarkers.length; i++) {
+  //     // also not a good way to check these things. Just for testing
+  //     // TODO: improve this!!
+  //     if (selectedFilters.find(selectedFilter => this.constMarkers[i].data.cuisine == selectedFilter) != undefined) {
+  //       tempMarkers.push(this.constMarkers[i]);
+  //     }
+  //   }
+  //   this.markers = tempMarkers;
+  // }
+  //
+  // renderFilterWindow() {
+  //   if (this.filterOpen == true && this.filterButtonPos != null) {
+  //     return (
+  //       <View style = {[styles.filtersContainer, {width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10,}]}
+  //         pointerEvents = 'box-none'
+  //       >
+  //         {Object.keys(this.filters).map((filter, i) => (
+  //           <View key = {i} style = {[styles.filtersListContainer, {height: this.filters[filter].open ? 110 : 0,}]}>
+  //             <ListView
+  //               dataSource = {this.filterDataSource[filter]}
+  //               renderRow = {this.renderFilterRow.bind(this, i)}
+  //             />
+  //           </View>
+  //         ))}
+  //         <View style = {[styles.filterTypeContainer, {width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, height: this.filterButtonPos.height,}]}
+  //         >
+  //           <TouchableOpacity style = {styles.filterTypeSelect}
+  //             onPress={() => {this.onFilterSelection('cuisine')}}>
+  //             <Text style = {styles.filterTypeText}>Cuisine</Text>
+  //           </TouchableOpacity>
+  //           <TouchableOpacity style = {styles.filterTypeSelect}
+  //           onPress={() => {this.onFilterSelection('price')}}>
+  //             <Text style = {styles.filterTypeText}>Price</Text>
+  //           </TouchableOpacity>
+  //           <TouchableOpacity style = {styles.filterTypeSelect}
+  //             onPress={() => {this.onFilterSelection('waitTime')}}>
+  //             <Text style = {styles.filterTypeText}>Wait Time</Text>
+  //           </TouchableOpacity>
+  //         </View>
+  //       </View>
+  //     );
+  //   }
+  //   else {
+  //     return;
+  //   }
+  // }
 
-  renderFilterWindow() {
-    if (this.filterOpen == true && this.filterButtonPos != null) {
-      return (
-        <View style = {[styles.filtersContainer, {width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10,}]}
-          pointerEvents = 'box-none'
-        >
-          {Object.keys(this.filters).map((filter, i) => (
-            <View key = {i} style = {[styles.filtersListContainer, {height: this.filters[filter].open ? 110 : 0,}]}>
-              <ListView
-                dataSource = {this.filterDataSource[filter]}
-                renderRow = {this.renderFilterRow.bind(this, i)}
-              />
-            </View>
-          ))}
-          <View style = {[styles.filterTypeContainer, {width: screen.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, height: this.filterButtonPos.height,}]}
-          >
-            <TouchableOpacity style = {styles.filterTypeSelect}
-              onPress={() => {this.onFilterSelection('cuisine')}}>
-              <Text style = {styles.filterTypeText}>Cuisine</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style = {styles.filterTypeSelect}
-            onPress={() => {this.onFilterSelection('price')}}>
-              <Text style = {styles.filterTypeText}>Price</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style = {styles.filterTypeSelect}
-              onPress={() => {this.onFilterSelection('waitTime')}}>
-              <Text style = {styles.filterTypeText}>Wait Time</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-    else {
-      return;
-    }
-  }
-
-  openTruckView = (item) => {
+  openTruckView = (truck) => {
     Actions.truck({
-      truckName: this.truckData[item.key]['name'],
-      menu: this.truckData[item.key]['menu'],
-      marker: this.markers[item.key],
+      truck: truck,
       region: this.region,
       onCheckoutPress: this.onCheckoutPress,
     });
@@ -297,7 +291,7 @@ const previewBlockSpacing = 10;
   renderSearchResultRow = (rowData) => {
     return (
       <TouchableOpacity style = {styles.searchResultRow} onPress = {(rowData) => {this.openTruckView({key:0})}}>
-        <Text style = {styles.searchResultText}>{this.toTitleCase(rowData.name)}</Text>
+        <Text style = {styles.searchResultText}>{this.toTitleCase(rowData.truck_name)}</Text>
       </TouchableOpacity>
     );
   }
@@ -318,7 +312,6 @@ const previewBlockSpacing = 10;
   }
 
   render() {
-    console.log("Rendering Map");
     return (
       <View style = {styles.container}>
         <MapView
@@ -338,15 +331,13 @@ const previewBlockSpacing = 10;
               onPress = {() => {this.truckList.scrollToIndex({index: marker.key})}}>
               <MapView.Callout>
                 <View>
-                  <Text style = {styles.pinCalloutText}>{this.toTitleCase(marker.data.name)}</Text>
+                  <Text style = {styles.pinCalloutText}>{this.toTitleCase(marker.data.truck_name)}</Text>
                   <Text style = {styles.pinCalloutText}>Cuisine: {marker.data.cuisine}</Text>
-                  <Text style = {styles.pinCalloutText}>Price: {this.priceText(marker.data.price)}</Text>
                 </View>
               </MapView.Callout>
             </MapView.Marker>
             ))}
         </MapView>
-        {this.renderFilterWindow()}
         <TouchableOpacity style={styles.searchButton}
           onPress={() => {this.searchbar.show()}}>
           <Icon name = "search" size = {30} color = {'white'}/>
@@ -357,20 +348,11 @@ const previewBlockSpacing = 10;
           }}>
           <Icon name = "my-location" size = {30} color = {'white'}/>
         </TouchableOpacity>
-        <TouchableOpacity style = {styles.filterButton}
-          ref = {ref => this.filterButton = ref} onPress = {() => {this.filterOpen = !this.filterOpen}}
-          onLayout={(event) => {
-            var {x, y, width, height} = event.nativeEvent.layout;
-            this.filterButtonPos = {x,y,width,height};
-          }}
-        >
-          <CommunityIcon name = "filter-outline" size = {20} color = {'white'}/>
-        </TouchableOpacity>
         <FlatList
           ref={list => this.truckList = list}
           style = {styles.truckScroll}
           horizontal={true}
-          data={this.markers}
+          data={this.truckData}
           getItemLayout = {(data,index) => (
             {length: previewBlockWidth, offset: (previewBlockWidth+2*previewBlockSpacing)*index, index}
           )}
@@ -378,7 +360,7 @@ const previewBlockSpacing = 10;
             <TouchableOpacity
               onPress={() => this.openTruckView(item)}
               style = {styles.previewBlock}>
-                <Text style = {styles.previewBlockText}>{this.toTitleCase(item.data.name)}</Text>
+                <Text style = {styles.previewBlockText}>{this.toTitleCase(item.truck_name)}</Text>
             </TouchableOpacity>
           }
         />

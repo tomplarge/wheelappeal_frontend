@@ -42,10 +42,10 @@ const food_truck_img = require('./food-truck-img.jpg')
   constructor(props) {
     // console.log("Constructing TruckView");
     super(props);
-    if (this.props.menu != null) {
+    if (this.props.truck.menu != null) {
       this.cart.totalPrice = 0;
-      this.props.menu.map((item, i) => {
-        this.cart.itemCounts[item.item] = {item: item, count: 0};
+      this.props.truck.menu.map((item, i) => {
+        this.cart.itemCounts[item.item_name] = {item: item, count: 0};
       });
     }
   }
@@ -58,8 +58,8 @@ const food_truck_img = require('./food-truck-img.jpg')
   onAddToCartPress = (countIncrease) => {
     // itemPressed is still the item that was selected
     this.cart.numItems += countIncrease;
-    this.cart.totalPrice += countIncrease * this.itemPressed.price;
-    this.cart.itemCounts[this.itemPressed.item].count += countIncrease;
+    this.cart.totalPrice += countIncrease * this.itemPressed.item_price;
+    this.cart.itemCounts[this.itemPressed.item_name].count += countIncrease;
     this.modalOpen = false;
     this.itemPressed = null;
   }
@@ -67,12 +67,12 @@ const food_truck_img = require('./food-truck-img.jpg')
   renderMenu = () => {
     return (
       <View>
-        {this.props.menu.map((item, i) => (
+        {this.props.truck.menu.map((item, i) => (
           <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed=item; this.modalOpen= true}} style = {styles.menuItem}>
             <View>
-              <Text style = {styles.menuItemName}>{this.toTitleCase(item.item)}</Text>
-              <Text style = {styles.menuItemCount}>{this.cart.itemCounts[item.item].count < 1 ? "" : this.cart.itemCounts[item.item].count}</Text>
-              <Text style = {styles.menuItemPrice}>${item.price}</Text>
+              <Text style = {styles.menuItemName}>{this.toTitleCase(item.item_name)}</Text>
+              <Text style = {styles.menuItemCount}>{this.cart.itemCounts[item.item_name].count < 1 ? "" : this.cart.itemCounts[item.item_name].count}</Text>
+              <Text style = {styles.menuItemPrice}>${item.item_price}</Text>
             </View>
           </TouchableHighlight>
         ))}
@@ -108,7 +108,7 @@ const food_truck_img = require('./food-truck-img.jpg')
 
   render() {
     // console.log("Rendering TruckView");
-    if (this.props.truckName === null) {
+    if (this.props.truck.truck_name === null) {
       return null
     }
     else {
@@ -124,7 +124,7 @@ const food_truck_img = require('./food-truck-img.jpg')
               </Image>
             </View>
             <View style = {styles.titleContainer}>
-              <Text style = {styles.titleText}>{this.toTitleCase(this.props.truckName)} </Text>
+              <Text style = {styles.titleText}>{this.toTitleCase(this.props.truck.truck_name)} </Text>
               <Text style = {styles.subtitleText}>Mexican</Text>
               <Text style = {styles.subtitleText}>4 minute walk</Text>
             </View>

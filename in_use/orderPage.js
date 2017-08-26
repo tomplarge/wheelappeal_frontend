@@ -41,11 +41,11 @@ const GREEN2 = '#00b789'
   renderCart = () => {
     return (
       <View>
-        {Object.keys(this.cart.itemCounts).filter((key) => {return this.cart.itemCounts[key].count > 0}).map((key, i) => (
-          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed = this.cart.itemCounts[key].item; this.modalOpen = true;}} style = {styles.menuItem}>
+        {Object.keys(this.cart.itemCounts).filter((item_name) => {return this.cart.itemCounts[item_name].count > 0}).map((item_name, i) => (
+          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed = this.cart.itemCounts[item_name]; this.modalOpen = true;}} style = {styles.menuItem}>
             <View>
-              <Text style = {styles.menuItemName}>{this.toTitleCase(key)}</Text>
-              <Text style = {styles.menuItemCount}>{this.cart.itemCounts[key].count}</Text>
+              <Text style = {styles.menuItemName}>{this.toTitleCase(item_name)}</Text>
+              <Text style = {styles.menuItemCount}>{this.cart.itemCounts[item_name].count}</Text>
             </View>
           </TouchableHighlight>
         ))}
@@ -65,9 +65,9 @@ const GREEN2 = '#00b789'
   onUpdateCartPress = (newCount) => {
     // itemPressed is still the item that was selected
     this.cart.numItems += newCount;
-    this.cart.totalPrice -= this.cart.itemCounts[this.itemPressed.item].count * this.itemPressed.price;
-    this.cart.itemCounts[this.itemPressed.item].count = newCount;
-    this.cart.totalPrice += this.cart.itemCounts[this.itemPressed.item].count * this.itemPressed.price;
+    this.cart.totalPrice -= this.cart.itemCounts[this.itemPressed.item_name].count * this.itemPressed.item_price;
+    this.cart.itemCounts[this.itemPressed.item_name].count = newCount;
+    this.cart.totalPrice += this.cart.itemCounts[this.itemPressed.item_name].count * this.itemPressed.item_price;
     this.modalOpen = false;
     this.itemPressed = null;
   }
@@ -79,7 +79,7 @@ const GREEN2 = '#00b789'
     else {
       return (
         <MenuItemModal
-          itemCount = {this.cart.itemCounts[this.itemPressed.item].count}
+          itemCount = {this.cart.itemCounts[this.itemPressed.item_name].count}
           itemPressed = {this.itemPressed}
           onExitPress = {this.onExitPress}
           onUpdateCartPress = {this.onUpdateCartPress}

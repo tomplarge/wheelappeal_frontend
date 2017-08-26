@@ -54,8 +54,8 @@ const ORANGE = '#ffb123'
         <TouchableHighlight onPress = {() => {this.props.onExitPress()}} style = {styles.exitButton}>
           <Icon name = "add" size = {30} style = {styles.exitIcon}/>
         </TouchableHighlight>
-        <Text style = {styles.titleText}>{this.toTitleCase(this.props.itemPressed.item)}</Text>
-        <Text style = {styles.subtitleText}>${this.props.itemPressed.price}</Text>
+        <Text style = {styles.titleText}>{this.toTitleCase(this.props.itemPressed.item_name)}</Text>
+        <Text style = {styles.subtitleText}>${this.props.itemPressed.item_price}</Text>
         <Text style = {styles.subtitleText}>Description</Text>
         <TouchableHighlight onPress = {() => {this.props.onUpdateCartPress ? this.props.onUpdateCartPress(this.currentCount) : this.props.onAddToCartPress(this.currentCount)}} style = {styles.addToCartButton}>
           <Text style = {styles.addToCartText}>{this.exitOption}</Text>
