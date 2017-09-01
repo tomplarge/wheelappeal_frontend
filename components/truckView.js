@@ -79,12 +79,12 @@ const food_truck_img = require('./food-truck-img.jpg')
   renderMenu = () => {
     return (
       <View>
-        {Object.keys(this.props.truck.menu).map((item_id, i) => (
+        {this.props.truck.menu.forEach((item, item_id) => (
           <TouchableHighlight  key = {i} onPress = {() => {this.openModal(item_id)}} style = {styles.menuItem}>
             <View>
-              <Text style = {styles.menuItemName}>{this.toTitleCase(this.props.truck.menu[item_id].item_name)}</Text>
+              <Text style = {styles.menuItemName}>{this.toTitleCase(item.item_name)}</Text>
               <Text style = {styles.menuItemCount}>{this.cart.get(item_id)}</Text>
-              <Text style = {styles.menuItemPrice}>${this.props.truck.menu[item_id].item_price}</Text>
+              <Text style = {styles.menuItemPrice}>${item.item_price}</Text>
             </View>
           </TouchableHighlight>
         ))}

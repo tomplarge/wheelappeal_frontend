@@ -11,24 +11,30 @@ Navigator,
 
 import ScrollableTabView from 'react-native-scrollable-tab-view';
 import { Router, Scene } from 'react-native-router-flux';
+import {useStrict} from 'mobx'
 
-import MapPage from './in_use/map'
-import TitlePage from './in_use/title'
-import OrderPage from './in_use/orderPage'
-import TruckView from './in_use/truckView'
+import MapPage from './components/map'
+import TitlePage from './components/title'
+import OrderPage from './components/orderPage'
+import TruckView from './components/truckView'
+import TruckStore from './stores/truckStore';
 
 const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
+
+//useStrict(true) // this breaks the map set current location since map view doesn't use mobx
 class wheelappeal extends Component {
+
   componentWillMount() {
-    // gather data
+    // create new truck store instance
+    truckStore = new TruckStore();
   }
 
   render() {
     return (
       <Router>
         <Scene key = 'root'>
-          <Scene key = 'map' component = {MapPage} hideNavBar initial/>
+          <Scene key = 'map' component = {MapPage} truckStore={truckStore} hideNavBar initial/>
           <Scene key = 'order' component = {OrderPage} {...this.props}/>
           <Scene key = 'truck' component = {TruckView} {...this.props} direction = 'vertical' panHandlers={null}/>
         </Scene>
