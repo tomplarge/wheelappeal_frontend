@@ -1,13 +1,4 @@
-import MapView from 'react-native-maps';
 import React, {Component} from "react";
-import TruckView from './truckView';
-import SearchBar from 'react-native-searchbar';
-import Icon from "react-native-vector-icons/MaterialIcons";
-import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
-import {Actions} from 'react-native-router-flux';
-import {observer} from 'mobx-react';
-import {observable, action} from "mobx";
-
 import {
     Text,
     View,
@@ -18,6 +9,19 @@ import {
     TouchableOpacity,
     ListView
 } from "react-native";
+
+import MapView from 'react-native-maps';
+
+import SearchBar from 'react-native-searchbar';
+import Icon from "react-native-vector-icons/MaterialIcons";
+import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
+import {Actions} from 'react-native-router-flux';
+import {observer} from 'mobx-react';
+import {observable, action} from "mobx";
+import PropTypes from 'prop-types';
+
+// import stores
+import TruckStore from '../stores/truckStore';
 
 // Global variables
 const GREEN = '#00d38e'
@@ -205,6 +209,10 @@ const PREV_BLK_SPACING = 10;
       </View>
     );
   }
+}
+
+MapPage.propTypes = {
+  truckStore: PropTypes.instanceOf(TruckStore).isRequired
 }
 
 const styles = StyleSheet.create({

@@ -13,36 +13,53 @@ import LinearGradient from 'react-native-linear-gradient';
 import Modal from 'react-native-modal';
 import {Actions} from 'react-native-router-flux';
 import {observer} from 'mobx-react';
-import {observable} from "mobx"
+import {observable, computed, action} from "mobx"
 
+// import self-created modules
 import MenuItemModal from './menuItemModal'
-const screen = Dimensions.get('window');
+
+// import stores
+import TruckStore from '../stores/truckStore'
+
+// Global constants
+const SCREEN = Dimensions.get('window');
 const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
 const GREEN2 = '#00b789'
 
 @observer export default class OrderPage extends Component {
-  @observable itemPressed = null;
-  @observable modalOpen = false;
+  @observable itemPressedId = null;
+  @observable modalVisible = false;
   @observable cart;
 
   constructor(props) {
-    // console.log("Constructing OrderPage");
     super(props);
-    this.cart = this.props.cart;
   }
 
-  // move this to some other utils?
+  // return capitalized string
   toTitleCase(str) {
     str = str.replace(/_/g, ' ');
     return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
   }
 
+  @computed get totalPrice() {
+    var totalPrice = 0;
+    this.cart.forEach((itemCount, itemId) => {totalPrice += this.props.truck.menu.get(itemId).item_price * itemCount});
+    return totalPrice;
+  }
+
+  @computed get totalItemCount() {
+    var totalCount = 0;
+    this.cart.forEach((itemCount, itemId) => {totalCount += itemCount});
+    return totalCount;
+  }
+
+  // render touchable cart rows
   renderCart = () => {
     return (
       <View>
         {Object.keys(this.cart.itemCounts).filter((item_name) => {return this.cart.itemCounts[item_name].count > 0}).map((item_name, i) => (
-          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed = this.cart.itemCounts[item_name].item; this.modalOpen = true;}}>
+          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed = this.cart.itemCounts[item_name].item; this.modalVisible = true;}}>
             <View style = {styles.menuItem}>
               <Text style = {styles.menuItemName}>{this.toTitleCase(item_name)}</Text>
               <Text style = {styles.menuItemCount}>{this.cart.itemCounts[item_name].count}</Text>
@@ -57,21 +74,27 @@ const GREEN2 = '#00b789'
     )
   }
 
+  // callback function when user exits item modal
   onExitPress = () => {
-    this.modalOpen = false;
+    this.modalVisible = false;
     this.itemPressed = null;
   }
 
+  // callback function when user updates cart through item modal
   onUpdateCartPress = (newCount) => {
-    // itemPressed is still the item that was selected
-    this.cart.numItems += newCount;
-    this.cart.totalPrice -= this.cart.itemCounts[this.itemPressed.item_name].count * this.itemPressed.item_price;
-    this.cart.itemCounts[this.itemPressed.item_name].count = newCount;
-    this.cart.totalPrice += this.cart.itemCounts[this.itemPressed.item_name].count * this.itemPressed.item_price;
-    this.modalOpen = false;
-    this.itemPressed = null;
+    // if the item is in the cart, add the new item count
+    if (this.cart.has(item_id)) {
+      this.cart.set(item_id, this.cart.get(item_id) + itemCountIncrease);
+    }
+    // if the item isn't in the cart, add it with the new item count
+    else {
+      this.cart.set(item_id, itemCountIncrease);
+    }
+    this.closeModal()
+    this.itemPressedId = null;
   }
 
+  // render item modal view
   renderItemModal = () => {
     if (this.itemPressed == null) {
       return (<View/>);
@@ -89,10 +112,9 @@ const GREEN2 = '#00b789'
   }
 
   render(){
-    // console.log("Rendering OrderPage");
     return(
       <View style = {styles.container}>
-        <Modal isVisible={this.modalOpen}>
+        <Modal isVisible={this.modalVisible}>
           {this.renderItemModal()}
         </Modal>
         <LinearGradient colors = {[GREEN, GREEN2]} style = {styles.topTabBar}>
@@ -152,7 +174,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Arial Rounded MT Bold',
   },
   menuItem: {
-    width: screen.width,
+    width: SCREEN.width,
     height: 50,
     justifyContent: 'center',
     borderBottomWidth: 1,

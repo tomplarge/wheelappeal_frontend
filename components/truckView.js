@@ -12,7 +12,6 @@ import {
   ScrollView,
 } from 'react-native';
 
-const screen = Dimensions.get('window');
 import {observer} from 'mobx-react';
 import {observable, computed, action, extendObservable} from "mobx"
 import Button from 'react-native-animated-button';
@@ -20,14 +19,19 @@ import {Actions} from 'react-native-router-flux';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import MapView from 'react-native-maps';
 import Modal from 'react-native-modal';
+import PropTypes from 'prop-types';
 
+// self-created modules
 import MenuItemModal from './menuItemModal'
-//TODO: Fix .bind(this)
 
+// import stores
+import TruckStore from '../stores/truckStore'
+
+// Global constants
+const SCREEN = Dimensions.get('window');
 const GREEN = '#00d38e'
 const ORANGE = '#ffb123'
-const MENU_ITEMS_NUM = 3
-const MENU_ITEM_HEIGHT = 50
+const MENU_ITEM_HEIGHT = 100;
 const food_truck_img = require('./food-truck-img.jpg')
 
 @observer export default class TruckView extends Component {
@@ -36,13 +40,12 @@ const food_truck_img = require('./food-truck-img.jpg')
   @observable cart = new Map() // {item_id: item_count}
 
   constructor(props) {
-    // console.log("Constructing TruckView");
     super(props);
   }
 
   @computed get totalPrice() {
     var totalPrice = 0;
-    this.cart.forEach((itemCount, itemId) => {totalPrice += this.props.truck.menu[itemId].item_price * itemCount});
+    this.cart.forEach((itemCount, itemId) => {totalPrice += this.props.truck.menu.get(itemId).item_price * itemCount});
     return totalPrice;
   }
 
@@ -53,13 +56,17 @@ const food_truck_img = require('./food-truck-img.jpg')
   }
 
   @action onExitPress = () => {
+    this.closeModal()
     this.itemPressedId = null;
   }
 
+  // callback function when user adds item to cart
   @action onAddToCartPress = (item_id, itemCountIncrease) => {
+    // if the item is in the cart, add the new item count
     if (this.cart.has(item_id)) {
       this.cart.set(item_id, this.cart.get(item_id) + itemCountIncrease);
     }
+    // if the item isn't in the cart, add it with the new item count
     else {
       this.cart.set(item_id, itemCountIncrease);
     }
@@ -67,36 +74,48 @@ const food_truck_img = require('./food-truck-img.jpg')
     this.itemPressedId = null;
   }
 
+  // toggle closed the item view modal
   @action closeModal = () => {
     this.modalVisible = false;
   }
 
+  // toggle open the item view modal
   @action openModal = (item_id) => {
     this.itemPressedId = item_id;
     this.modalVisible = true;
+
   }
 
+  // move this to some other utils?
+  toTitleCase(str) {
+    str = str.replace(/_/g, ' ');
+    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+  }
+
+  // render menu by looping through truck menu
   renderMenu = () => {
+    console.log();
     return (
       <View>
-        {this.props.truck.menu.forEach((item, item_id) => (
-          <TouchableHighlight  key = {i} onPress = {() => {this.openModal(item_id)}} style = {styles.menuItem}>
-            <View>
-              <Text style = {styles.menuItemName}>{this.toTitleCase(item.item_name)}</Text>
-              <Text style = {styles.menuItemCount}>{this.cart.get(item_id)}</Text>
-              <Text style = {styles.menuItemPrice}>${item.item_price}</Text>
-            </View>
-          </TouchableHighlight>
-        ))}
+        {this.props.truck.menu.keys().map((item_id) => (
+            <TouchableHighlight  key = {item_id} onPress = {() => {this.openModal(item_id)}} style = {styles.menuItem}>
+              <View>
+                <Text style = {styles.menuItemName}>{this.toTitleCase(this.props.truck.menu.get(item_id).item_name)}</Text>
+                <Text style = {styles.menuItemCount}>{this.cart.get(item_id)}</Text>
+                <Text style = {styles.menuItemPrice}>${this.props.truck.menu.get(item_id).item_price}</Text>
+              </View>
+            </TouchableHighlight>
+          ))}
       </View>
     );
   }
 
+  // render item view modal with appropriate props
   renderItemModal = () => {
     if (this.itemPressedId != null) {
       return (
         <MenuItemModal
-          itemPressed = {this.props.truck.menu[this.itemPressedId]}
+          itemPressed = {this.props.truck.menu.get(this.itemPressedId)}
           itemCount = {this.cart.get(this.itemPressedId)}
           onExitPress = {this.onExitPress}
           onAddToCartPress = {this.onAddToCartPress}
@@ -106,12 +125,6 @@ const food_truck_img = require('./food-truck-img.jpg')
     else {
       return <View/>
     }
-  }
-
-  // move this to some other utils?
-  toTitleCase(str) {
-    str = str.replace(/_/g, ' ');
-    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
   }
 
   render() {
@@ -129,7 +142,7 @@ const food_truck_img = require('./food-truck-img.jpg')
           </View>
           <View style = {styles.titleContainer}>
             <Text style = {styles.titleText}>{this.toTitleCase(this.props.truck.truck_name)} </Text>
-            <Text style = {styles.subtitleText}>Mexican</Text>
+            <Text style = {styles.subtitleText}>{this.toTitleCase(this.props.truck.cuisine)}</Text>
             <Text style = {styles.subtitleText}>4 minute walk</Text>
           </View>
           <MapView
@@ -174,7 +187,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageContainer: {
-    width: screen.width,
+    width: SCREEN.width,
     height: 250,
     top: 0,
   },
@@ -182,7 +195,7 @@ const styles = StyleSheet.create({
     top: 0,
     flex: 1,
     resizeMode: Image.resizeMode.stretch,
-    width: screen.width,
+    width: SCREEN.width,
   },
   backButton: {
     position: 'absolute',
@@ -221,7 +234,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1,
-    width: screen.width,
+    width: SCREEN.width,
     borderBottomWidth: 2,
     borderBottomColor: 'grey',
   },
@@ -237,12 +250,12 @@ const styles = StyleSheet.create({
   },
   map: {
     height: 250,
-    width: screen.width,
+    width: SCREEN.width,
     flex: 1,
   },
   bottomTab: {
     height: 75,
-    width: screen.width,
+    width: SCREEN.width,
     justifyContent: 'center',
     borderTopWidth: 1,
     borderTopColor: 'black'
@@ -268,7 +281,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Arial Rounded MT Bold',
   },
   menuItem: {
-    width: screen.width,
+    width: SCREEN.width,
     height: 50,
     justifyContent: 'center',
     borderBottomWidth: 1,
@@ -292,6 +305,15 @@ const styles = StyleSheet.create({
     left: 100
   },
 });
+
+// TruckView.propTypes = {
+//   truck: PropTypes.shape({
+//     menu: PropTypes.instanceOf(ObservableMap),
+//     cuisine: PropTypes.string,
+//     truck_name: PropTypes.string
+//   }).isRequired,
+//   onCheckoutPress: PropTypes.func.isRequired,
+// }
 
 /* Reserves
 
