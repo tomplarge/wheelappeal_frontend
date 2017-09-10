@@ -15,6 +15,7 @@ import {
 import {observer} from 'mobx-react';
 import {observable, computed, action, extendObservable} from "mobx"
 import Button from 'react-native-animated-button';
+import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 import {Actions} from 'react-native-router-flux';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import MapView from 'react-native-maps';
@@ -23,21 +24,26 @@ import PropTypes from 'prop-types';
 
 // self-created modules
 import MenuItemModal from './menuItemModal'
-
+import CheckoutModal from './checkoutModal'
 // import stores
 import TruckStore from '../stores/truckStore'
 
 // Global constants
 const SCREEN = Dimensions.get('window');
-const GREEN = '#00d38e'
-const ORANGE = '#ffb123'
+const GREEN = '#00d38e';
+const TRNS_GREEN = '#00d38e80';
+const DRK_GREEN = '#1c9963';
+const ORANGE = '#ffb123';
 const MENU_ITEM_HEIGHT = 100;
-const food_truck_img = require('./food-truck-img.jpg')
+const food_truck_img = require('./food-truck-img.jpg');
 
 @observer export default class TruckView extends Component {
   @observable itemPressedId = null;
   @observable modalVisible = false;
-  @observable cart = new Map() // {item_id: item_count}
+  @observable checkoutModalVisible = false;
+  @observable cart = new Map(); // {item_id: item_count}
+
+  @observable favPressed = false;
 
   constructor(props) {
     super(props);
@@ -60,6 +66,10 @@ const food_truck_img = require('./food-truck-img.jpg')
     this.itemPressedId = null;
   }
 
+  onFavPress = () => {
+    this.favPressed = !this.favPressed;
+  }
+
   // callback function when user adds item to cart
   @action onAddToCartPress = (item_id, itemCountIncrease) => {
     // if the item is in the cart, add the new item count
@@ -70,20 +80,20 @@ const food_truck_img = require('./food-truck-img.jpg')
     else {
       this.cart.set(item_id, itemCountIncrease);
     }
-    this.closeModal()
+    this.closeModal();
     this.itemPressedId = null;
   }
 
   // toggle closed the item view modal
   @action closeModal = () => {
     this.modalVisible = false;
+    this.checkoutModalVisible = false;
   }
 
   // toggle open the item view modal
   @action openModal = (item_id) => {
     this.itemPressedId = item_id;
     this.modalVisible = true;
-
   }
 
   // move this to some other utils?
@@ -94,15 +104,14 @@ const food_truck_img = require('./food-truck-img.jpg')
 
   // render menu by looping through truck menu
   renderMenu = () => {
-    console.log();
     return (
       <View>
         {this.props.truck.menu.keys().map((item_id) => (
-            <TouchableHighlight  key = {item_id} onPress = {() => {this.openModal(item_id)}} style = {styles.menuItem}>
-              <View>
+            <TouchableHighlight  key = {item_id} onPress = {() => {this.openModal(item_id)}} underlayColor = {'darkgrey'}>
+              <View style = {styles.menuItem}>
+                {this.renderItemCountView(item_id)}
                 <Text style = {styles.menuItemName}>{this.toTitleCase(this.props.truck.menu.get(item_id).item_name)}</Text>
-                <Text style = {styles.menuItemCount}>{this.cart.get(item_id)}</Text>
-                <Text style = {styles.menuItemPrice}>${this.props.truck.menu.get(item_id).item_price}</Text>
+                <Text style = {styles.menuItemPrice}>{this.props.truck.menu.get(item_id).item_price}.00</Text>
               </View>
             </TouchableHighlight>
           ))}
@@ -119,6 +128,8 @@ const food_truck_img = require('./food-truck-img.jpg')
           itemCount = {this.cart.get(this.itemPressedId)}
           onExitPress = {this.onExitPress}
           onAddToCartPress = {this.onAddToCartPress}
+          onResponderRelease = {this.closeModal}
+          onLayout = {this.onModalLayout}
         />
       );
     }
@@ -127,13 +138,76 @@ const food_truck_img = require('./food-truck-img.jpg')
     }
   }
 
+  renderCheckoutModal = () => {
+    if (true) {
+      return (
+        <CheckoutModal
+          totalPrice = {this.totalPrice}
+          onExitPress = {this.onExitPress}
+          onConfirmPaymentPress = {this.onConfirmPaymentPress}
+          onPaymentConfirmed = {this.onPaymentConfirmed}
+        />
+      );
+    }
+    else {
+      return <View/>
+    }
+  }
+
+  onModalLayout = (event) => {
+    this.modalLayout = event.nativeEvent.layout;
+  }
+
+  @action onCheckoutPress = () => {
+    this.checkoutModalVisible = true;
+  }
+
+  // render circles view for count
+  renderItemCountView = (itemID) => {
+    let itemCount = this.cart.get(itemID);
+    if (itemCount <= 6) {
+      dots = []
+      for (var i = 0; i < itemCount; i++) {
+        dots.push(<View key = {i} style = {styles.menuItemCounter}/>);
+      }
+
+      return (
+        <View style = {styles.menuItemCountContainer}>
+          {dots}
+        </View>
+      );
+    }
+    else {
+      return (
+        <View style = {styles.menuItemCountContainer}>
+          <Text style = {styles.menuItemCountText}>{itemCount}</Text>
+        </View>
+      )
+    }
+  }
+
+  onConfirmPaymentPress = () => new Promise(() => {
+
+  })
+
+  @action onPaymentConfirmed = () => {
+    this.checkoutModalVisible = false;
+    this.cart = new Map();
+  }
+
   render() {
     // console.log("Rendering TruckView");
       // console.log(this.cart.numItems, this.cart.itemCounts, this.cart.totalPrice);
     return (
       <View style = {styles.container}>
-        <Modal isVisible={this.modalVisible}>
+        <Modal isVisible={this.modalVisible}
+          onStartShouldSetResponder = {() => {return true}}
+          onResponderRelease = {this.closeModal}
+          onResponderTerminationRequest = {() => {return true}}>
           {this.renderItemModal()}
+        </Modal>
+        <Modal isVisible={this.checkoutModalVisible}>
+          {this.renderCheckoutModal()}
         </Modal>
         <ScrollView style={styles.container}>
           <View style = {styles.imageContainer}>
@@ -142,40 +216,35 @@ const food_truck_img = require('./food-truck-img.jpg')
           </View>
           <View style = {styles.titleContainer}>
             <Text style = {styles.titleText}>{this.toTitleCase(this.props.truck.truck_name)} </Text>
-            <Text style = {styles.subtitleText}>{this.toTitleCase(this.props.truck.cuisine)}</Text>
-            <Text style = {styles.subtitleText}>4 minute walk</Text>
+            <CommunityIcon style = {styles.subtitleIcon} name = "silverware" size = {15} color = {GREEN}>
+              <Text style = {styles.subtitleText}>  {this.toTitleCase(this.props.truck.cuisine)}</Text>
+            </CommunityIcon>
+            <CommunityIcon style = {styles.subtitleIcon} name = "walk" size = {15} color = {GREEN}>
+              <Text style = {styles.subtitleText}>  4 min</Text>
+            </CommunityIcon>
           </View>
-          <MapView
-            showsUserLocation
-            style= {styles.map}
-            region={{
-              latitude: 37.78825,
-              longitude: -122.4324,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }}
-            scrollEnabled={false}
-            zoomEnabled={false}
-          >
-          </MapView>
-          <View style = {styles.titleContainer}>
-            <Text style = {styles.titleText}>Menu</Text>
+          <View style = {styles.menuTitleContainer}>
+            <Text style = {styles.menuTitleText}>Menu</Text>
           </View>
           {this.renderMenu()}
         </ScrollView>
         <View style = {styles.bottomTab}>
-          <Text style = {styles.cartText}>Total Price:  ${this.totalPrice}</Text>
-          <Text style = {styles.cartText}>Item Count:  {this.totalItemCount}</Text>
-          <TouchableHighlight onPress = {() => {this.totalPrice > 0 ? this.props.onCheckoutPress(this.cart) : null}}
+          <CommunityIcon style = {styles.subtitleIcon} name = "cash-usd" size = {15} color = {GREEN}>
+            <Text style = {styles.subtitleText}>  {this.totalPrice}</Text>
+          </CommunityIcon>
+          <CommunityIcon style = {styles.subtitleIcon} name = "cart" size = {15} color = {GREEN}>
+            <Text style = {styles.subtitleText}>  {this.totalItemCount}</Text>
+          </CommunityIcon>
+          <TouchableHighlight underlayColor = {DRK_GREEN} disabled = {this.totalPrice <= 0} onPress = {() => {this.totalPrice > 0 ? this.onCheckoutPress() : null}}
             style = {[styles.checkoutButton, {backgroundColor: this.totalItemCount > 0 ? GREEN : 'grey'}]}>
             <Text style = {styles.checkoutButtonText}>Checkout</Text>
           </TouchableHighlight>
         </View>
-        <TouchableHighlight style = {styles.backButton} onPress = {() => {Actions.pop()}}>
+        <TouchableHighlight underlayColor = {TRNS_GREEN} style = {styles.backButton} onPress = {() => {Actions.pop()}}>
           <Icon name = "arrow-back" size = {25} color = {GREEN} style = {styles.backButtonIcon}/>
         </TouchableHighlight>
-        <TouchableHighlight style = {styles.favButton}>
-          <Icon name = "favorite" size = {25} color = {GREEN} style = {styles.favButtonIcon}/>
+        <TouchableHighlight underlayColor = {TRNS_GREEN} style = {styles.favButton} onPress = {() => {this.onFavPress()}}>
+          <CommunityIcon name = {this.favPressed ? "heart" : "heart-outline"} size = {25} color = {GREEN} style = {styles.favButtonIcon}/>
         </TouchableHighlight>
       </View>
     )
@@ -213,6 +282,7 @@ const styles = StyleSheet.create({
   backButtonIcon: {
     width: 25,
     alignSelf: 'center',
+
     fontFamily: 'Arial Rounded MT Bold',
   },
   favButton: {
@@ -226,27 +296,47 @@ const styles = StyleSheet.create({
     borderColor: 'black',
     backgroundColor: 'white',
     alignItems: 'center',
+    alignContent: 'center',
     justifyContent: 'center',
   },
   favButtonIcon: {
     width: 25,
+    top: 1,
     alignSelf: 'center',
   },
   titleContainer: {
     flex: 1,
     width: SCREEN.width,
-    borderBottomWidth: 2,
-    borderBottomColor: 'grey',
+    borderBottomWidth: 1,
+    borderBottomColor: 'darkgrey',
+    paddingBottom: 10,
   },
   titleText: {
     fontSize: 40,
-    left: 0,
+    marginLeft: 15,
+    marginTop: 8,
+    fontFamily: 'Arial Rounded MT Bold',
+  },
+  menuTitleContainer: {
+    flex: 1,
+    width: SCREEN.width,
+    borderBottomWidth: 1,
+    borderBottomColor: 'darkgrey',
+    paddingBottom: 10,
+  },
+  menuTitleText: {
+    fontSize: 30,
+    marginLeft: 15,
+    marginTop: 8,
     fontFamily: 'Arial Rounded MT Bold',
   },
   subtitleText: {
     fontSize: 15,
-    left: 0,
     fontFamily: 'Arial Rounded MT Bold',
+    color: 'black',
+  },
+  subtitleIcon: {
+    marginLeft: 15,
   },
   map: {
     height: 250,
@@ -274,12 +364,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Arial Rounded MT Bold',
   },
-  cartText: {
-    left: 10,
-    fontSize: 15,
-    color: GREEN,
-    fontFamily: 'Arial Rounded MT Bold',
-  },
   menuItem: {
     width: SCREEN.width,
     height: 50,
@@ -290,19 +374,37 @@ const styles = StyleSheet.create({
   menuItemName: {
     position: 'absolute',
     fontSize: 15,
-    left: 5,
+    marginLeft: 40,
     fontFamily: 'Arial Rounded MT Bold',
   },
   menuItemPrice: {
     position: 'absolute',
     fontSize: 15,
     right: 5,
+    color: GREEN,
     fontFamily: 'Arial Rounded MT Bold',
   },
-  menuItemCount: {
+  menuItemCountText: {
+    fontSize: 15,
     color: GREEN,
-    position: 'absolute',
-    left: 100
+    fontFamily: 'Arial Rounded MT Bold',
+  },
+  menuItemCountContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: 25,
+    margin: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignContent: 'center'
+  },
+  menuItemCounter: {
+    height: 5,
+    width: 5,
+    borderRadius: 2.5,
+    backgroundColor: GREEN,
+    margin: 1,
   },
 });
 

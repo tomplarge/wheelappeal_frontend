@@ -11,6 +11,7 @@ import {
 
 import LinearGradient from 'react-native-linear-gradient';
 import Modal from 'react-native-modal';
+import Icon from "react-native-vector-icons/MaterialIcons";
 import {Actions} from 'react-native-router-flux';
 import {observer} from 'mobx-react';
 import {observable, computed, action} from "mobx"
@@ -44,66 +45,75 @@ const GREEN2 = '#00b789'
 
   @computed get totalPrice() {
     var totalPrice = 0;
-    this.cart.forEach((itemCount, itemId) => {totalPrice += this.props.truck.menu.get(itemId).item_price * itemCount});
+    this.props.cart.forEach((itemCount, itemId) => {totalPrice += this.props.truck.menu.get(itemId).item_price * itemCount});
     return totalPrice;
   }
 
   @computed get totalItemCount() {
     var totalCount = 0;
-    this.cart.forEach((itemCount, itemId) => {totalCount += itemCount});
+    this.props.cart.forEach((itemCount, itemId) => {totalCount += itemCount});
     return totalCount;
+  }
+
+  // callback function when user exits item modal
+  @action onExitPress = () => {
+    this.modalVisible = false;
+    this.itemPressedId = null;
+  }
+
+  // callback function when user updates cart through item modal
+  @action onUpdateCartPress = (item_id, newCount) => {
+    // if the new count is 0, remove it from cart
+    if (newCount == 0) {
+      this.props.cart.delete(item_id);
+    }
+    else {
+      this.props.cart.set(item_id, newCount);
+    }
+    this.closeModal();
+    this.itemPressedId = null;
+
+    // if cart is empty, return to truck view
+    if (this.props.cart.keys().length < 1) {
+      Actions.pop()
+    }
+  }
+
+  // toggle closed the item view modal
+  @action closeModal = () => {
+    this.modalVisible = false;
   }
 
   // render touchable cart rows
   renderCart = () => {
     return (
       <View>
-        {Object.keys(this.cart.itemCounts).filter((item_name) => {return this.cart.itemCounts[item_name].count > 0}).map((item_name, i) => (
-          <TouchableHighlight  key = {i} onPress = {() => {this.itemPressed = this.cart.itemCounts[item_name].item; this.modalVisible = true;}}>
+        {this.props.cart.keys().map((item_id) => (
+          <TouchableHighlight  key = {item_id} onPress = {() => {this.itemPressedId = item_id; this.modalVisible = true;}}>
             <View style = {styles.menuItem}>
-              <Text style = {styles.menuItemName}>{this.toTitleCase(item_name)}</Text>
-              <Text style = {styles.menuItemCount}>{this.cart.itemCounts[item_name].count}</Text>
+              <Text style = {styles.menuItemName}>{this.toTitleCase(this.props.truck.menu.get(item_id).item_name)}</Text>
+              <Text style = {styles.menuItemCount}>{this.props.cart.get(item_id)}</Text>
             </View>
           </TouchableHighlight>
         ))}
         <View style = {styles.menuItem}>
           <Text style = {[styles.menuItemName,{color: GREEN}]}>Total: </Text>
-          <Text style = {styles.menuItemCount}>${this.cart.totalPrice}</Text>
+          <Text style = {styles.menuItemCount}>${this.totalPrice}</Text>
         </View>
       </View>
     )
   }
 
-  // callback function when user exits item modal
-  onExitPress = () => {
-    this.modalVisible = false;
-    this.itemPressed = null;
-  }
-
-  // callback function when user updates cart through item modal
-  onUpdateCartPress = (newCount) => {
-    // if the item is in the cart, add the new item count
-    if (this.cart.has(item_id)) {
-      this.cart.set(item_id, this.cart.get(item_id) + itemCountIncrease);
-    }
-    // if the item isn't in the cart, add it with the new item count
-    else {
-      this.cart.set(item_id, itemCountIncrease);
-    }
-    this.closeModal()
-    this.itemPressedId = null;
-  }
-
   // render item modal view
   renderItemModal = () => {
-    if (this.itemPressed == null) {
+    if (this.itemPressedId == null) {
       return (<View/>);
     }
     else {
       return (
         <MenuItemModal
-          itemCount = {this.cart.itemCounts[this.itemPressed.item_name].count}
-          itemPressed = {this.itemPressed}
+          itemPressed = {this.props.truck.menu.get(this.itemPressedId)}
+          itemCount = {this.props.cart.get(this.itemPressedId)}
           onExitPress = {this.onExitPress}
           onUpdateCartPress = {this.onUpdateCartPress}
         />
@@ -119,10 +129,13 @@ const GREEN2 = '#00b789'
         </Modal>
         <LinearGradient colors = {[GREEN, GREEN2]} style = {styles.topTabBar}>
           <Text style = {styles.topTabBarText}>Your Order</Text>
+          <TouchableHighlight style = {styles.backButton} onPress = {() => {Actions.pop()}}>
+            <Icon name = "arrow-back" size = {25} color = {'black'}/>
+          </TouchableHighlight>
         </LinearGradient>
         <ScrollView style = {styles.container}>
           <View style = {styles.titleContainer}>
-            <Text style = {styles.titleText}>Truck Name</Text>
+            <Text style = {styles.titleText}>{this.props.truck.truck_name}</Text>
           </View>
           {this.renderCart()}
         </ScrollView>
@@ -148,6 +161,14 @@ const styles = StyleSheet.create({
     alignSelf:'center',
     backgroundColor: 'transparent',
     fontFamily: 'Arial Rounded MT Bold',
+    position: 'absolute'
+  },
+  backButton: {
+    left: 10,
+    height: 40,
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bottomTabBar: {
     backgroundColor: GREEN,
@@ -166,15 +187,16 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: 40,
+    paddingBottom: 10,
     backgroundColor: 'transparent',
     fontFamily: 'Arial Rounded MT Bold',
   },
   subtitleText: {
     fontSize: 20,
+    marginLeft: 15,
     fontFamily: 'Arial Rounded MT Bold',
   },
   menuItem: {
-    width: SCREEN.width,
     height: 50,
     justifyContent: 'center',
     borderBottomWidth: 1,
@@ -184,7 +206,7 @@ const styles = StyleSheet.create({
   menuItemName: {
     position: 'absolute',
     fontSize: 15,
-    left: 5,
+    marginLeft: 15,
     fontFamily: 'Arial Rounded MT Bold',
   },
   menuItemCount: {

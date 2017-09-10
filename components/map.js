@@ -7,12 +7,11 @@ import {
     Animated,
     FlatList,
     TouchableOpacity,
-    ListView
+    ListView,
+    Image
 } from "react-native";
 
 import MapView from 'react-native-maps';
-
-import SearchBar from 'react-native-searchbar';
 import Icon from "react-native-vector-icons/MaterialIcons";
 import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 import {Actions} from 'react-native-router-flux';
@@ -22,17 +21,19 @@ import PropTypes from 'prop-types';
 
 // import stores
 import TruckStore from '../stores/truckStore';
+import SearchBar from './searchBar';
 
 // Global variables
 const GREEN = '#00d38e'
+const TRNS_GREEN = '#00d38e80';
 const ORANGE = '#ffb123'
 const SCREEN = Dimensions.get('window');
-const PREV_BLK_HEIGHT = 75;
+const PREV_BLK_HEIGHT = 150;
 const PREV_BLK_WIDTH = SCREEN.width*7/10;
-const PREV_BLK_SPACING = 10;
+const PREV_BLK_SPACING = 0;
+const food_truck_img = require('./food-truck-img.jpg');
 
 @observer export default class MapPage extends Component {
-
   @observable searchBarVisible = false;
   @observable searchResultsView;
   @observable truckData;
@@ -103,11 +104,13 @@ const PREV_BLK_SPACING = 10;
   }
 
   // callback function for when user presses checkout
-  onCheckoutPress(cart) {
+  onCheckoutPress(cart, truck) {
     // console.log(cart);
     Actions.pop();
+    console.log('ACtion:', Actions)
     Actions.order({
       cart: cart,
+      truck: truck
     });
   }
 
@@ -179,22 +182,33 @@ const PREV_BLK_SPACING = 10;
           }}>
           <Icon name = "my-location" size = {30} color = {'white'}/>
         </TouchableOpacity>
-        <FlatList
-          ref={list => this.truckList = list}
-          style = {styles.truckScroll}
-          horizontal={true}
-          data={this.props.truckStore.truckData}
-          getItemLayout = {(data,index) => (
-            {length: PREV_BLK_WIDTH, offset: (PREV_BLK_WIDTH + 2 * PREV_BLK_SPACING) * index, index}
-          )}
-          renderItem={({item}) =>
-            <TouchableOpacity
-              onPress={() => this.openTruckView(item)}
-              style = {styles.previewBlock}>
-                <Text style = {styles.previewBlockText}>{this.toTitleCase(item.truck_name)}</Text>
-            </TouchableOpacity>
-          }
-        />
+        <View style = {styles.listContainer}>
+          <SearchBar
+            style = {{backgroundColor: 'red', top: 0}}
+            showOnLoad
+            iconColor = {GREEN}
+          />
+          <FlatList
+            ref={list => this.truckList = list}
+            style = {styles.truckScroll}
+            horizontal={true}
+            data={this.props.truckStore.truckData}
+            getItemLayout = {(data,index) => (
+              {length: PREV_BLK_WIDTH, offset: (PREV_BLK_WIDTH + 2 * PREV_BLK_SPACING) * index, index}
+            )}
+            renderItem={({item}) =>
+              <TouchableOpacity
+                onPress={() => this.openTruckView(item)}
+                style = {styles.previewBlock}>
+                  <Image source = {food_truck_img} style = {styles.previewBlockImage}/>
+                  <View style = {[styles.previewBlock, {backgroundColor: 'rgba(0,0,0,0.35)'}]}>
+                    <Text style = {styles.previewBlockTitleText}>{this.toTitleCase(item.truck_name)}</Text>
+                    <Text style = {styles.previewBlockSubtitleText}>{this.toTitleCase(item.cuisine)}</Text>
+                  </View>
+                </TouchableOpacity>
+            }
+          />
+        </View>
         <View style = {{flex: 1, top: 0, position: 'absolute'}}>
           <SearchBar
             style = {{backgroundColor: 'red'}}
@@ -230,28 +244,44 @@ const styles = StyleSheet.create({
     position: 'relative',
     //top: SCREEN.height - PREV_BLK_HEIGHT,
   },
+  listContainer: {
+    backgroundColor: 'white',
+    height: 200,
+  },
   previewBlock: {
       flex: 1,
       width: PREV_BLK_WIDTH,
       height: PREV_BLK_HEIGHT,
-      marginHorizontal: PREV_BLK_SPACING,
-      backgroundColor: GREEN,
       overflow: 'hidden',
-      borderRadius: 5,
-      borderColor: '#000',
-      borderWidth: 0,
       justifyContent: 'center',
       alignItems: 'center',
   },
-  previewBlockText: {
-    fontSize: 20,
+  previewBlockTitleText: {
+    fontSize: 30,
     color: 'white',
     fontWeight: 'bold',
-    fontFamily: 'Arial Rounded MT Bold',
+    fontFamily: 'Arial',
+    backgroundColor: 'transparent',
+    letterSpacing: 4,
+  },
+  previewBlockSubtitleText: {
+    fontSize: 15,
+    color: 'white',
+    fontWeight: 'bold',
+    fontFamily: 'Arial',
+    backgroundColor: 'transparent',
+  },
+  previewBlockImage: {
+    position: 'absolute',
+    resizeMode: Image.resizeMode.stretch,
+    width: PREV_BLK_WIDTH,
+    height: PREV_BLK_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   truckScroll: {
     width: SCREEN.width,
-    bottom: 6,
+    bottom: 0,
     position: 'absolute',
   },
   filterButton: {
@@ -292,7 +322,6 @@ const styles = StyleSheet.create({
     color: GREEN,
     fontFamily: 'Arial Rounded MT Bold',
   },
-
   searchResultsContainer: {
     top: 72, // definitely will break on android
     width: SCREEN.width,
@@ -313,196 +342,3 @@ const styles = StyleSheet.create({
     borderBottomColor: 'grey'
   },
 });
-
-/* Reserves
-const FILTER_WIDTH = (SCREEN.width - 50)/3 - 10;
-const FILTER_ITEM_HEIGHT = 30;
-
-// use api for cuisine options?
-const FILTER_OPTIONS = {
-  'cuisine': ['mexican', 'chinese', 'american'],
-  'price': ['$','$$','$$$','$$$$'],
-  'waitTime':['0-5','5-10','10-15','15-20'],
-}
-@observable filters = {
-  'cuisine': {
-    key: 0,
-    selected: null,
-    open: false,
-  },
-  'price': {
-    key: 1,
-    selected: null,
-    open: false,
-  },
-  'waitTime': {
-    key: 2,
-    selected: null,
-    open: false,
-  },
-};
-@observable filterOpen = false;
-
-this.filterButtonPos = null;
-// this can be consolidated
-cuisineDefaultSelected = {}
-for (var i = 0; i < FILTER_OPTIONS['cuisine'].length; i++) {
-  cuisineDefaultSelected[FILTER_OPTIONS['cuisine'][i]] = false;
-}
-
-priceDefaultSelected = {}
-for (var i = 0; i < FILTER_OPTIONS['price'].length; i++) {
-  priceDefaultSelected[FILTER_OPTIONS['price'][i]] = false;
-}
-
-waitTimeDefaultSelected = {}
-for (var i = 0; i < FILTER_OPTIONS['waitTime'].length; i++) {
-  waitTimeDefaultSelected[FILTER_OPTIONS['waitTime'][i]] = false;
-}
-
-this.filters['cuisine'].selected = cuisineDefaultSelected;
-this.filters['price'].selected = priceDefaultSelected;
-this.filters['waitTime'].selected = waitTimeDefaultSelected;
-
-var filterDs = {};
-Object.keys(this.filters).forEach((filterName) => {
-  filterDs[filterName] = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
-  this.filterDataSource[filterName] = filterDs[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
-})
-
-generateFilterRows(filters, filterName) {
-  var dataObj = [];
-  optionsList = FILTER_OPTIONS[filterName]
-  for (var i = 0; i < optionsList.length; i++) {
-    optionName = optionsList[i]
-    rowObj = {text: optionName, id: i, selected: filters[filterName].selected[optionName]};
-    dataObj.push(rowObj);
-  }
-  return dataObj;
-}
-
-renderFilterRow(i, row) {
-    return (
-      <TouchableOpacity style={[styles.filterRow, {backgroundColor: row.selected ? GREEN : 'white'}]}
-        onPress = {() => {this.handleFilterPress(row, i)}}>
-        <Text> {row.text} </Text>
-      </TouchableOpacity>
-    )
-}
-
-handleFilterPress = (row, i) => {
-  // gotta be a better way
-  filterName = Object.keys(this.filters)[i];
-  filter = this.filters[filterName];
-  filter.selected[row.text] = !filter.selected[row.text];
-  this.filterDataSource[filterName] = this.filterDataSource[filterName].cloneWithRows(this.generateFilterRows(this.filters, filterName));
-  this.makeFilterHappen(filterName);
-}
-
-onFilterSelection = (filterName) => {
-  this.filters[filterName].open = !this.filters[filterName].open;
-}
-
-need input? we don't want to search over every filter every time
-filterName: 'cuisine', 'price', etc.
-makeFilterHappen = (filterName) => {
-  filterObj = this.filters[filterName]; //the object associated with cuisine, price, etc.
-  selectedFilters = Object.keys(filterObj.selected).filter(el => filterObj.selected[el] == true)
-  // this is linear just for testing - make it not
-  // TODO: improve this!!
-  var tempMarkers = []
-  for (var i = 0; i < this.constMarkers.length; i++) {
-    // also not a good way to check these things. Just for testing
-    // TODO: improve this!!
-    if (selectedFilters.find(selectedFilter => this.constMarkers[i].data.cuisine == selectedFilter) != undefined) {
-      tempMarkers.push(this.constMarkers[i]);
-    }
-  }
-  this.markers = tempMarkers;
-}
-
-renderFilterWindow() {
-  if (this.filterOpen == true && this.filterButtonPos != null) {
-    return (
-      <View style = {[styles.filtersContainer, {width: SCREEN.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10,}]}
-        pointerEvents = 'box-none'
-      >
-        {Object.keys(this.filters).map((filter, i) => (
-          <View key = {i} style = {[styles.filtersListContainer, {height: this.filters[filter].open ? 110 : 0,}]}>
-            <ListView
-              dataSource = {this.filterDataSource[filter]}
-              renderRow = {this.renderFilterRow.bind(this, i)}
-            />
-          </View>
-        ))}
-        <View style = {[styles.filterTypeContainer, {width: SCREEN.width - this.filterButtonPos.x - this.filterButtonPos.width - 2*10, height: this.filterButtonPos.height,}]}
-        >
-          <TouchableOpacity style = {styles.filterTypeSelect}
-            onPress={() => {this.onFilterSelection('cuisine')}}>
-            <Text style = {styles.filterTypeText}>Cuisine</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style = {styles.filterTypeSelect}
-          onPress={() => {this.onFilterSelection('price')}}>
-            <Text style = {styles.filterTypeText}>Price</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style = {styles.filterTypeSelect}
-            onPress={() => {this.onFilterSelection('waitTime')}}>
-            <Text style = {styles.filterTypeText}>Wait Time</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-  else {
-    return;
-  }
-}
-
-filterTypeSelect: {
-  borderRadius: 3,
-  width: FILTER_WIDTH,
-  backgroundColor: 'white',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-filterSelect: {
-
-},
-filterTypeText: {
-  color: GREEN,
-},
-filterTypeContainer: {
-  position: 'absolute',
-  left: 0,
-  bottom: 0,
-  borderRadius: 3,
-  flex: 1,
-  backgroundColor: 'transparent',
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-},
-filtersListContainer: {
-  backgroundColor: 'white',
-  width: FILTER_WIDTH,
-  top: 0,
-  borderRadius: 3,
-},
-filtersContainer: {
-  flex: 1,
-  height: 150,
-  justifyContent:'space-between',
-  backgroundColor: 'transparent',
-  bottom: 10+PREV_BLK_HEIGHT,
-  position: 'absolute',
-  right: 10,
-  flexDirection: 'row',
-},
-filterRow: {
-  borderRadius: 1,
-  borderBottomWidth: 2,
-  borderColor: GREEN,
-  height: FILTER_ITEM_HEIGHT,
-  justifyContent:'center',
-  alignItems:'center',
-},
-*/

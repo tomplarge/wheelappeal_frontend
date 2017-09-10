@@ -16,15 +16,54 @@ export default class TruckStore {
   // fetches trucks from database via call to API
   // loads these values into truckData and subsequently sets markers
   loadTrucks() {
-    fetch('http://wheelappeal.co:5000/truck_data', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+    // fetch('http://wheelappeal.co:5000/truck_data', {
+    //   method: 'GET',
+    //   headers: {
+    //     'Accept': 'application/json',
+    //     'Content-Type': 'application/json',
+    //   },
+    // })
+    // .then((response) => response.json()) // returns a promise
+    //.then((responseJSON) => {this.constructTruckData(responseJSON); this.setMarkers()}) // JSON promise handled here
+    trucks = [
+      {
+        truck_name: 'Truck',
+        cuisine: 'Cuisine',
+        truck_id: 't1',
+        menu: [
+          {
+            item_id: 'i1',
+            item_name: 'Item',
+            item_price: 10
+          },
+          {
+            item_id: 'i2',
+            item_name: 'Item 2',
+            item_price: 20
+          }
+        ]
       },
-    })
-    .then((response) => response.json()) // returns a promise
-    .then((responseJSON) => {this.constructTruckData(responseJSON); this.setMarkers()}) // JSON promise handled here
+      {
+        truck_name: 'Truck 2',
+        cuisine: 'Cuisine 2',
+        truck_id: 't2',
+        menu: [
+          {
+            item_id: 'i3',
+            item_name: 'Item',
+            item_price: 10
+          },
+          {
+            item_id: 'i4',
+            item_name: 'Item 2',
+            item_price: 20
+          }
+        ]
+      }
+    ];
+
+    this.constructTruckData(trucks);
+    this.setMarkers();
   }
 
   // constructs truckData objects
