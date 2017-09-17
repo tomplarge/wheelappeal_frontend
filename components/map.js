@@ -8,7 +8,7 @@ import {
     FlatList,
     TouchableOpacity,
     ListView,
-    Image
+    Image,
 } from "react-native";
 
 import MapView from 'react-native-maps';
@@ -16,7 +16,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 import {Actions} from 'react-native-router-flux';
 import {observer} from 'mobx-react';
-import {observable, action} from "mobx";
+import {observable, action, toJS} from "mobx";
 import PropTypes from 'prop-types';
 
 // import stores
@@ -34,20 +34,19 @@ const PREV_BLK_SPACING = 0;
 const food_truck_img = require('./food-truck-img.jpg');
 
 @observer export default class MapPage extends Component {
-  @observable searchBarVisible = false;
   @observable searchResultsView;
+  @observable searching;
   @observable truckData;
   @observable markers = [];
   @observable region;
+  @observable toggle = 'map';
+  scrollResponder;
 
   constructor(props) {
     super(props);
 
     // instantiate observable truckData
     this.truckData = this.props.truckStore.truckData;
-
-    // initialize search results listview datasource
-    this.searchResultsDs = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
   }
 
   componentWillMount() {
@@ -55,7 +54,12 @@ const food_truck_img = require('./food-truck-img.jpg');
     this.setCurrentLocation();
   }
 
+  componentDidMount() {
+    this.scrollResponder = this.truckList.getScrollResponder();
+  }
+
   // centers map at user location
+  // TODO move this to user store
   @action setCurrentLocation = () => {
     try {
       navigator.geolocation.getCurrentPosition(
@@ -107,120 +111,100 @@ const food_truck_img = require('./food-truck-img.jpg');
   onCheckoutPress(cart, truck) {
     // console.log(cart);
     Actions.pop();
-    console.log('ACtion:', Actions)
     Actions.order({
       cart: cart,
       truck: truck
     });
   }
 
-  // renders clickable search result row
-  renderSearchResultRow = (rowData) => {
-    return (
-      <TouchableOpacity style = {styles.searchResultRow} onPress = {() => {this.openTruckView(rowData)}}>
-        <Text style = {styles.searchResultText}>{this.toTitleCase(rowData.truck_name)}</Text>
-      </TouchableOpacity>
-    );
+  @action onTogglePress = (toggle) => {
+    this.toggle = toggle;
   }
 
-  // processes search results
-  // creates list view to hold search result rows
-  @action handleSearchResults = (results) => {
-    if (results) {
-      this.searchResultsDataSource = this.searchResultsDs.cloneWithRows(results)
-      // TODO: this will definitely need changing on Android
-      this.searchResultsView = (
-        <ListView style = {styles.searchResultsContainer}
-          dataSource = {this.searchResultsDataSource}
-          renderRow = {(rowData) => this.renderSearchResultRow(rowData)}
-          keyboardShouldPersistTaps="always"
-          enableEmptySections
-        />
-      );
-    }
-  }
-
-  // clear search results view
-  @action clearSearchResultsView = () => {
-    this.searchResultsView = null;
+  searchFriendlyTruckData = () => {
+    let tmpArray = [];
+    this.props.truckStore.truckData.forEach((truck, truck_id) => {
+      let tmp = {
+        ...truck,
+        menu: truck.menu.values()
+      }
+      tmpArray.push(tmp);
+    });
+    console.log('tmp:',tmpArray);
+    return tmpArray;
   }
 
   render() {
-    return (
-      <View style = {styles.container}>
-        <MapView
-          ref={map => this.map = map}
-          onPress = {() => {this.searchbar && this.searchbar.hide()}}
-          showsUserLocation
-          style={styles.map}
-          region={this.region}
-          onMapReady = {() => {this.setCurrentLocation()}}
-        >
-          {this.props.truckStore.markers.map(marker => (
-            <MapView.Marker
-              ref = {'marker' + marker.key}
-              key = {marker.key}
-              coordinate={marker.coordinate}
-              title={marker.title}
-              onPress = {() => {this.truckList.scrollToIndex({index: marker.index})}}>
-              <MapView.Callout>
-                <View>
-                  <Text style = {styles.pinCalloutText}>{this.toTitleCase(marker.data.truck_name)}</Text>
-                  <Text style = {styles.pinCalloutText}>Cuisine: {marker.data.cuisine}</Text>
-                </View>
-              </MapView.Callout>
-            </MapView.Marker>
-            ))}
-        </MapView>
-        <TouchableOpacity style={styles.searchButton}
-          onPress={() => {this.searchbar.show()}}>
-          <Icon name = "search" size = {30} color = {'white'}/>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.locationButton}
-          onPress={() => {
-            this.setCurrentLocation()
-          }}>
-          <Icon name = "my-location" size = {30} color = {'white'}/>
-        </TouchableOpacity>
-        <View style = {styles.listContainer}>
-          <SearchBar
-            style = {{backgroundColor: 'red', top: 0}}
-            showOnLoad
-            iconColor = {GREEN}
-          />
-          <FlatList
-            ref={list => this.truckList = list}
-            style = {styles.truckScroll}
-            horizontal={true}
-            data={this.props.truckStore.truckData}
-            getItemLayout = {(data,index) => (
-              {length: PREV_BLK_WIDTH, offset: (PREV_BLK_WIDTH + 2 * PREV_BLK_SPACING) * index, index}
-            )}
-            renderItem={({item}) =>
-              <TouchableOpacity
-                onPress={() => this.openTruckView(item)}
-                style = {styles.previewBlock}>
-                  <Image source = {food_truck_img} style = {styles.previewBlockImage}/>
-                  <View style = {[styles.previewBlock, {backgroundColor: 'rgba(0,0,0,0.35)'}]}>
-                    <Text style = {styles.previewBlockTitleText}>{this.toTitleCase(item.truck_name)}</Text>
-                    <Text style = {styles.previewBlockSubtitleText}>{this.toTitleCase(item.cuisine)}</Text>
+      return (
+        <View style = {styles.container}>
+          <MapView
+            ref={map => this.map = map}
+            showsUserLocation
+            style={styles.map}
+            region={this.region}
+            onMapReady = {() => {this.setCurrentLocation()}}
+          >
+            {this.props.truckStore.markers.map(marker => (
+              <MapView.Marker
+                ref = {'marker' + marker.key}
+                key = {marker.key}
+                coordinate={marker.coordinate}
+                title={marker.title}
+                onPress = {() => {this.truckList.scrollToIndex({index: marker.index})}}>
+                <MapView.Callout>
+                  <View>
+                    <Text style = {styles.pinCalloutText}>{this.toTitleCase(marker.data.truck_name)}</Text>
+                    <Text style = {styles.pinCalloutText}>Cuisine: {marker.data.cuisine}</Text>
                   </View>
-                </TouchableOpacity>
-            }
-          />
-        </View>
-        <View style = {{flex: 1, top: 0, position: 'absolute'}}>
+                </MapView.Callout>
+              </MapView.Marker>
+              ))}
+          </MapView>
+          <TouchableOpacity style={styles.locationButton}
+            onPress={() => {
+              this.setCurrentLocation()
+            }}>
+            <Icon name = "my-location" size = {20} color = {'white'}/>
+          </TouchableOpacity>
+          <View style = {styles.toggleContainer}>
+            <TouchableOpacity style={[styles.listButton, {backgroundColor: this.toggle == 'list' ? GREEN : 'white'}]} onPress = {() => this.onTogglePress('list')}>
+              <Icon name = "list" size = {25} color = {this.toggle == 'list' ? 'white' : GREEN}/>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.mapButton, {backgroundColor: this.toggle == 'map' ? GREEN : 'white'}]} onPress = {() => this.onTogglePress('map')}>
+              <Icon name = "map" size = {25} color = {this.toggle == 'map' ? 'white' : GREEN}/>
+            </TouchableOpacity>
+          </View>
+          <View style = {styles.listContainer}>
+            <FlatList
+              ref={list => {this.truckList = list}}
+              style = {styles.truckScroll}
+              horizontal={true}
+              data={this.props.truckStore.truckData}
+              getItemLayout = {(data, index) => (
+                {length: PREV_BLK_WIDTH, offset: (PREV_BLK_WIDTH + 2 * PREV_BLK_SPACING) * index, index}
+              )}
+              ItemSeparatorComponent = {() =>{return (<View style = {{backgroundColor: GREEN, height: PREV_BLK_HEIGHT - 20, width: 1, top: 10, position: 'absolute', right: 0}}/>)}}
+              renderItem={({item}) =>
+                <TouchableOpacity
+                  onPress={() => {this.openTruckView(item)}}
+                  style = {styles.previewBlock}>
+                    <Image source = {food_truck_img} style = {styles.previewBlockImage}/>
+                    <View style = {[styles.previewBlock, {backgroundColor: 'rgba(0,0,0,0.35)', height: PREV_BLK_HEIGHT - 20, width: PREV_BLK_WIDTH - 20}]}>
+                      <Text style = {styles.previewBlockTitleText}>{this.toTitleCase(item.truck_name)}</Text>
+                      <Text style = {styles.previewBlockSubtitleText}>{this.toTitleCase(item.cuisine)}</Text>
+                    </View>
+                  </TouchableOpacity>
+              }
+            />
+          </View>
           <SearchBar
-            style = {{backgroundColor: 'red'}}
             ref={(ref) => this.searchbar = ref}
-            placeholder = {'Search Food Trucks'}
-            data = {this.props.truckStore.truckData.slice()}
-            handleResults = {this.handleSearchResults}
-            onHide = {this.clearSearchResultsView}
+            placeholder = {'Search...'}
+            data = {this.searchFriendlyTruckData()}
+            autoCorrect = {false}
+            handleResultSelect = {(rowData) => this.openTruckView(rowData)}
           />
-          {this.searchResultsView}
         </View>
-      </View>
     );
   }
 }
@@ -245,14 +229,11 @@ const styles = StyleSheet.create({
     //top: SCREEN.height - PREV_BLK_HEIGHT,
   },
   listContainer: {
-    backgroundColor: 'white',
-    height: 200,
+    height: PREV_BLK_HEIGHT,
   },
   previewBlock: {
-      flex: 1,
       width: PREV_BLK_WIDTH,
       height: PREV_BLK_HEIGHT,
-      overflow: 'hidden',
       justifyContent: 'center',
       alignItems: 'center',
   },
@@ -274,8 +255,8 @@ const styles = StyleSheet.create({
   previewBlockImage: {
     position: 'absolute',
     resizeMode: Image.resizeMode.stretch,
-    width: PREV_BLK_WIDTH,
-    height: PREV_BLK_HEIGHT,
+    width: PREV_BLK_WIDTH - 20,
+    height: PREV_BLK_HEIGHT - 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -283,6 +264,8 @@ const styles = StyleSheet.create({
     width: SCREEN.width,
     bottom: 0,
     position: 'absolute',
+    borderTopWidth: 1,
+    borderColor: 'lightgray',
   },
   filterButton: {
     left: 10,
@@ -296,15 +279,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationButton: {
-    top: 20,
-    right: 10,
     position: 'absolute',
-    height: 50,
-    width: 50,
-    borderRadius: 10,
-    backgroundColor:GREEN,
+    bottom: PREV_BLK_HEIGHT + 10,
+    right: 10,
+    height: 35,
+    width: 35,
+    borderRadius: 4,
+    backgroundColor: GREEN,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  toggleContainer: {
+    position: 'absolute',
+    top: 25,
+    right: 15,
+    height: 70,
+    width: 40,
+    backgroundColor: 'white',
+    borderRadius: 5,
+    flexDirection: 'column',
+    alignItems: 'center'
+  },
+  listButton: {
+    width: 40,
+    height: 35,
+    position: 'absolute',
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomRightRadius: 5,
+    borderBottomLeftRadius: 5,
+  },
+  mapButton: {
+    width: 40,
+    height: 35,
+    position: 'absolute',
+    top: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopRightRadius: 5,
+    borderTopLeftRadius: 5,
   },
   searchButton: {
     top: 20,
@@ -322,23 +336,11 @@ const styles = StyleSheet.create({
     color: GREEN,
     fontFamily: 'Arial Rounded MT Bold',
   },
-  searchResultsContainer: {
-    top: 72, // definitely will break on android
-    width: SCREEN.width,
-    flex: 1,
-  },
-  searchResultText: {
-    fontSize: 20,
-    color: GREEN,
-    left: 0,
-    margin: 5,
-    fontFamily: 'Arial Rounded MT Bold',
-  },
-  searchResultRow: {
-    backgroundColor: 'white',
-    height: 50,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'grey'
-  },
 });
+
+/*
+<TouchableOpacity style={styles.searchButton}
+  onPress={() => {this.searchbar.show()}}>
+  <Icon name = "search" size = {30} color = {'white'}/>
+</TouchableOpacity>
+*/

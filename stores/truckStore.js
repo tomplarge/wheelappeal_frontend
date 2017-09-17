@@ -59,7 +59,41 @@ export default class TruckStore {
             item_price: 20
           }
         ]
-      }
+      },
+      {
+        truck_name: 'Truck4',
+        cuisine: 'Cuisine',
+        truck_id: 't12',
+        menu: [
+          {
+            item_id: 'i12',
+            item_name: 'Item22',
+            item_price: 10
+          },
+          {
+            item_id: 'i24',
+            item_name: 'Item 22',
+            item_price: 20
+          }
+        ]
+      },
+      {
+        truck_name: 'Truck3',
+        cuisine: 'Cuisine',
+        truck_id: 't15',
+        menu: [
+          {
+            item_id: 'i112',
+            item_name: 'Item13',
+            item_price: 10
+          },
+          {
+            item_id: 'i234',
+            item_name: 'Item 244',
+            item_price: 20
+          }
+        ]
+      },
     ];
 
     this.constructTruckData(trucks);

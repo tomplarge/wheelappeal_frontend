@@ -7,14 +7,31 @@ import {
   TextInput,
   TouchableOpacity,
   Animated,
+  Text,
+  ListView,
+  Image
 } from 'react-native';
+import CommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { filter, some, includes } from 'lodash/collection';
 import { debounce } from 'lodash/function';
+import {observer} from 'mobx-react';
+import {observable, action} from "mobx";
 
-const INITIAL_TOP = Platform.OS === 'ios' ? -80 : -60;
+// const INITIAL_TOP = Platform.OS === 'ios' ? -80 : -60;
+const INITIAL_TOP = 20;
+const GREEN = '#00de8e';
+const food_truck_img = require('./food-truck-img.jpg');
 
-export default class Search extends Component {
+@observer export default class Search extends Component {
+  @observable iconName =  "search";
+  @observable input = '';
+  @observable searchButtonSelected = 'nearby';
+  @observable searchbarTop = new Animated.Value(45);
+  @observable searchbarWidth = new Animated.Value(225);
+  @observable searchbarHeight = new Animated.Value(30);
+  @observable resultsListView;
+  @observable resultsViewH = new Animated.Value(0);
 
   static propTypes = {
     data: PropTypes.array,
@@ -22,6 +39,7 @@ export default class Search extends Component {
     handleChangeText: PropTypes.func,
     handleSearch: PropTypes.func,
     handleResults: PropTypes.func,
+    handleResultSelect: PropTypes.func,
     onSubmitEditing: PropTypes.func,
     onFocus: PropTypes.func,
     onBlur: PropTypes.func,
@@ -79,7 +97,7 @@ export default class Search extends Component {
     clearOnShow: false,
     clearOnHide: true,
     clearOnBlur: false,
-    focusOnLayout: true,
+    focusOnLayout: false,
     autoCorrect: true,
     autoCapitalize: 'sentences',
     keyboardAppearance: 'default',
@@ -91,68 +109,65 @@ export default class Search extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {
-      input: '',
-      show: props.showOnLoad,
-      top: new Animated.Value(props.showOnLoad ? 0 : INITIAL_TOP + props.heightAdjust),
-    };
+
+    // initialize search results listview datasource
+    this.searchResultsDs = new ListView.DataSource({rowHasChanged: (r1, r2) => r1.selected !== r2.selected});
   }
 
   getValue = () => {
-    return this.state.input;
+    return this.input;
   }
 
-  show = () => {
-    const { animate, animationDuration, clearOnShow } = this.props;
-    if (clearOnShow) {
-      this.setState({ input: '' });
-    }
-    this.setState({ show: true });
-    if (animate) {
-      Animated.timing(
-        this.state.top, {
-            toValue: 0,
-            duration: animationDuration,
-        }
-      ).start();
-    } else {
-      this.setState({ top: new Animated.Value(0) });
-    }
-  }
-
-  hide = () => {
-    const { onHide, animate, animationDuration } = this.props;
-    if (onHide) {
-      onHide(this.state.input);
-    }
-    if (animate) {
-      Animated.timing(
-        this.state.top, {
-            toValue: INITIAL_TOP,
-            duration: animationDuration,
-        }
-      ).start();
-      setTimeout(() => {
-        this._doHide();
-      }, animationDuration);
-    } else {
-      this.setState({ top: new Animated.Value(INITIAL_TOP) })
-      this._doHide()
-    }
-  }
-
-  _doHide = () => {
-    const { clearOnHide } = this.props;
-    this.setState({ show: false });
-    if (clearOnHide) {
-      this.setState({ input: '' });
-    }
-  }
+  // @action show = () => {
+  //   const { animate, animationDuration, clearOnShow } = this.props;
+  //   if (clearOnShow) {
+  //     this.input = '';
+  //   }
+  //   this.setState({ show: true });
+  //   if (animate) {
+  //     Animated.timing(
+  //       this.top, {
+  //           toValue: 0,
+  //           duration: animationDuration,
+  //       }
+  //     ).start();
+  //   } else {
+  //     this.setState({ top: new Animated.Value(0) });
+  //   }
+  // }
 
   _handleX = () => {
     const { onX } = this.props;
-    this._clearInput()
+    this._clearInput();
+
     if (onX) onX()
+
+  }
+
+  _handleBack = () => {
+    this.iconName = "search";
+    this.textInput.blur();
+    this._clearInput();
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(this.searchbarTop, {
+          toValue: 45,
+          duration: 125,
+        }),
+        Animated.timing(this.searchbarWidth, {
+          toValue: 225,
+          duration: 125
+        }),
+        Animated.timing(this.searchbarHeight, {
+          toValue: 30,
+          duration: 125
+        }),
+      ]),
+      Animated.timing(this.resultsViewH, {
+        toValue: 0,
+        duration: 125
+      })
+    ]).start();
   }
 
   _handleBlur = () => {
@@ -166,13 +181,13 @@ export default class Search extends Component {
   }
 
   _clearInput = () => {
-    this.setState({ input: '' });
+    this.input = '';
     this._onChangeText('');
   }
 
   _onChangeText = (input) => {
     const { handleChangeText, handleSearch, handleResults } = this.props;
-    this.setState({ input });
+    this.input = input;
     if (handleChangeText) {
       handleChangeText(input);
     }
@@ -181,10 +196,8 @@ export default class Search extends Component {
     } else {
       debounce(() => {
         // use internal search logic (depth first)!
-        if (handleResults) {
-          const results = this._internalSearch(input);
-          handleResults(results);
-        }
+        const results = this._internalSearch(input);
+        this.handleResults(results);
       }, 500)();
     }
   }
@@ -207,6 +220,117 @@ export default class Search extends Component {
       return includes(collection.toString().toLowerCase(), input.toString().toLowerCase());
     }
     return some(collection, (item) => this._depthFirstSearch(item, input));
+  }
+
+  // returns capitalized string
+  toTitleCase(str) {
+    str = str.replace(/_/g, ' ');
+    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+  }
+
+  @action onFocus = () => {
+    this.iconName = "arrow-back";
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(this.searchbarTop, {
+          toValue: 20,
+          duration: 125,
+        }),
+        Animated.timing(this.searchbarWidth, {
+          toValue: Dimensions.get('window').width,
+          duration: 125
+        }),
+        Animated.timing(this.searchbarHeight, {
+          toValue: 50,
+          duration: 125
+        }),
+      ]),
+      Animated.timing(this.resultsViewH, {
+        toValue: Dimensions.get('window').height,
+        duration: 125
+      }),
+    ]).start();
+  }
+
+  // processes search results
+  // creates list view to hold search result rows
+  @action handleResults = (results) => {
+    if (results) {
+      this.searchResultsDataSource = this.searchResultsDs.cloneWithRows(results)
+      // TODO: this will definitely need changing on Android
+      this.resultsListView = (
+        <ListView style = {styles.searchResultsContainer}
+          dataSource = {this.searchResultsDataSource}
+          renderRow = {(rowData) => this.renderSearchResultRow(rowData)}
+          enableEmptySections
+        />
+      );
+    }
+  }
+
+  // clear search results view
+  @action clearSearchResultsView = () => {
+    this.searchResultsView = null;
+  }
+
+  renderSearchView = () => {
+    if (this.iconName == 'arrow-back') {
+      return (
+        <Animated.View
+          style = {[styles.resultsViewContainer, {
+            height: this.resultsViewH,
+            top: this.searchbarHeight
+          }]}
+        >
+          <View style = {[styles.resultViewButtonContainer]}>
+            <TouchableOpacity ref = {(ref) => this.nearby = ref} onPress = {() => {this.searchButtonSelected = 'nearby'}} style = {styles.resultViewButton}>
+              <View style = {{width: 60, alignItems: 'center'}}>
+                <Icon name = "location-on" size = {25} color = {this.searchButtonSelected == 'nearby' ? GREEN : 'lightgrey'} style = {{alignSelf: 'center'}}/>
+                <Text style = {{color: this.searchButtonSelected == 'nearby' ? GREEN : 'lightgrey'}}>Nearby</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity ref = {(ref) => this.favorite = ref} onPress = {() => {this.searchButtonSelected = 'favorite'}} style = {styles.resultViewButton}>
+              <View style = {{width: 60, alignItems: 'center'}}>
+                <Icon name = "favorite" size = {25} color = {this.searchButtonSelected == 'favorite' ? GREEN : 'lightgrey'} style = {{alignSelf: 'center'}}/>
+                <Text style = {{color: this.searchButtonSelected == 'favorite' ? GREEN : 'lightgrey'}}>Favorites</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity ref = {(ref) => this.recent = ref} onPress = {() => {this.searchButtonSelected = 'recent'}} style = {styles.resultViewButton}>
+              <View style = {{width: 60, alignItems: 'center'}}>
+                <Icon name = "access-time" size = {25} color = {this.searchButtonSelected == 'recent' ? GREEN : 'lightgrey'} style = {{alignSelf: 'center'}}/>
+                <Text style = {{color: this.searchButtonSelected == 'recent' ? GREEN : 'lightgrey'}}>Recent</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          <View style = {[styles.resultListContainer]}>
+            {this.resultsListView}
+          </View>
+        </Animated.View>
+      )
+    }
+  }
+
+  // renders clickable search result row
+  renderSearchResultRow = (rowData) => {
+    return (
+      <TouchableOpacity style = {styles.searchResultRow} onPress = {() => {this.props.handleResultSelect(rowData)}}>
+        <View style = {{flex: 1, flexDirection: 'row', alignItems: 'center'}}>
+          <Image style = {{height: 50, width: 50, borderRadius: 25, marginRight: 10}} source = {food_truck_img}/>
+          <View style = {{flex: 1, justifyContent: 'center', height: 40}}>
+            <Text style = {styles.searchResultText}>{this.toTitleCase(rowData.truck_name)}</Text>
+            <View style = {{flexDirection: 'row', flex: 1, justifyContent: 'space-between'}}>
+              <CommunityIcon style = {{height: 10}} name = "walk" size = {10} color = {GREEN}/>
+              <Text style = {styles.subtitleText}>4 min</Text>
+            </View>
+            <View style = {{flexDirection: 'row', flex: 1, justifyContent: 'space-between'}}>
+              <CommunityIcon style = {{height: 10}} name = "silverware" size = {10} color = {GREEN}/>
+              <Text style = {styles.subtitleText}>{this.toTitleCase(rowData.cuisine)}</Text>
+            </View>
+          </View>
+          <Icon name = {'chevron-right'} size = {20} color = {GREEN}/>
+        </View>
+      </TouchableOpacity>
+    );
   }
 
   render = () => {
@@ -238,112 +362,121 @@ export default class Search extends Component {
         fontSize
     } = this.props;
     return (
-      <Animated.View style={[styles.container, {
-          top: this.state.top,
-          shadowOpacity: iOSHideShadow ? 0 : 0.7,
-      }]}>
-        {
-        this.state.show &&
-        <View style={[styles.navWrapper, { backgroundColor }]} >
-          {
-            Platform.OS === 'ios' && iOSPadding &&
-            <View style={{ height: 0 }} />
-          }
-          <View style={[
-              styles.nav,
-              { height: (Platform.OS === 'ios' ? 52 : 62) + heightAdjust },
-            ]}
+        <Animated.View style={[styles.navWrapper, {top: this.searchbarTop, width: this.searchbarWidth, height: this.searchbarHeight}, {...this.props.style}]}>
+          <TouchableOpacity
+            style = {{left: 5, position: 'absolute', alignItems: 'center'}}
+            disabled = {this.iconName === 'arrow-back' ? false : true}
+            onPress = {() => {this._handleBack()}}
           >
-          {
-            !hideBack &&
-            <TouchableOpacity
-              accessible={true}
-              accessibilityComponentType="button"
-              accessibilityLabel={backButtonAccessibilityLabel}
-              onPress={onBack || this.hide}>
-            </TouchableOpacity>
-          }
-            <TextInput
-              ref={(ref) => this.textInput = ref}
-              onLayout={() => focusOnLayout && this.textInput.focus()}
-              style={[
-                styles.input,
-                {
-                  fontSize: fontSize, color: textColor, fontFamily: fontFamily,
-                  marginLeft: hideBack ? 30 : 0,
-                  alignSelf: 'center'
-                }
-              ]}
-              selectionColor={selectionColor}
-              onChangeText={(input) => this._onChangeText(input)}
-              onSubmitEditing={() => onSubmitEditing ? onSubmitEditing() : null}
-              onFocus={() => onFocus ? onFocus() : null}
-              onBlur={this._handleBlur}
-              placeholder={placeholder}
-              placeholderTextColor={placeholderTextColor}
-              value={this.state.input}
-              underlineColorAndroid='transparent'
-              returnKeyType='search'
-              autoCorrect={autoCorrect}
-              autoCapitalize={autoCapitalize}
-              keyboardAppearance={keyboardAppearance}
-            />
+            <Icon name = {this.iconName} size = {20} color = {GREEN} />
+          </TouchableOpacity>
+          <TextInput
+            ref={(ref) => this.textInput = ref}
+            style = {styles.textInput}
+            onLayout={() => focusOnLayout && this.textInput.focus()}
+            selectionColor={selectionColor}
+            onChangeText={(input) => this._onChangeText(input)}
+            onSubmitEditing={() => onSubmitEditing ? onSubmitEditing() : null}
+            onFocus={() => this.onFocus()}
+            onBlur={this._handleBlur}
+            placeholder={placeholder}
+            placeholderTextColor={placeholderTextColor}
+            value={this.input}
+            underlineColorAndroid='transparent'
+            returnKeyType='search'
+            autoCorrect={autoCorrect}
+            autoCapitalize={autoCapitalize}
+            keyboardAppearance={keyboardAppearance}
+          />
+          { this.input != '' &&
             <TouchableOpacity
               accessible={true}
               accessibilityComponentType='button'
               accessibilityLabel={closeButtonAccessibilityLabel}
-              onPress={hideX || this.state.input === '' ? null : this._handleX}>
-              {
-              closeButton ?
-              <View style={{width: backCloseSize, height: backCloseSize}} >{closeButton}</View>
-              :
+              onPress={this._handleX}>
               <Icon
                 name={'close'}
-                size={backCloseSize}
-                style={{
-                  color: hideX || this.state.input == '' ? backgroundColor : iconColor,
-                  alignSelf: 'center'
-                }}
+                size={15}
+                color={GREEN}
               />
-              }
             </TouchableOpacity>
-          </View>
-        </View>
-        }
-      </Animated.View>
+          }
+          {this.renderSearchView()}
+        </Animated.View>
     );
   }
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    zIndex: 10,
-    position: 'absolute',
-    elevation: 2,
-    shadowRadius: 5,
-  },
   navWrapper: {
-    width: Dimensions.get('window').width,
-  },
-  nav: {
-    ...Platform.select({
-        android: {
-          borderBottomColor: 'lightgray',
-          borderBottomWidth: StyleSheet.hairlineWidth,
-        },
-    }),
     flex: 1,
-    flexBasis: 1,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    position: 'absolute',
+    backgroundColor: 'white',
     alignItems: 'center',
+    alignSelf: 'center',
+    padding: 5,
+    shadowOffset: {width: 3, height: 3},
+    shadowRadius: 4,
+    shadowOpacity: 0.3,
   },
-  input: {
-    ...Platform.select({
-        ios: { height: 30 },
-        android: { height: 50 },
-    }),
-    width: Dimensions.get('window').width - 120,
-  }
+  textInput: {
+    flex: 1,
+    left: 25
+  },
+  resultsViewContainer: {
+    flex: 1,
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  resultViewButtonContainer: {
+    height: 75,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    width: Dimensions.get('window').width,
+    borderTopWidth: 1,
+    borderTopColor: 'lightgrey',
+    overflow: 'hidden',
+    justifyContent: 'space-around',
+  },
+  resultViewButton: {
+    justifyContent: 'center'
+  },
+  resultListContainer: {
+    flex: 1,
+    width: Dimensions.get('window').width,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderColor: 'grey',
+    overflow: 'hidden',
+    borderBottomWidth: 1,
+  },
+  searchResultText: {
+    fontSize: 15,
+    color: 'black',
+    fontFamily: 'Arial Rounded MT Bold',
+  },
+  searchResultRow: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    height: 75,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'darkgrey',
+    marginLeft: 25,
+    marginRight: 25,
+  },
+  subtitleText: {
+    fontSize: 10,
+    fontFamily: 'Arial Rounded MT Bold',
+    color: '#111111',
+    position: 'absolute',
+    left: 20
+  },
 });
+
+/*
+
+*/
